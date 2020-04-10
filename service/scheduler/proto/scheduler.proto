@@ -1,0 +1,16 @@
+syntax = "proto3";
+package scheduler;
+
+service Scheduler {
+    rpc Schedule (ScheduleRequest) returns (ScheduleResponse);
+}
+
+message ScheduleRequest {
+    string strategy = 1;
+    repeated string sites = 2;
+    string file_info = 3;
+}
+
+message ScheduleResponse {
+    string site = 1;
+}
