@@ -80,5 +80,29 @@ export default [
         data: 'success'
       }
     }
+  },
+
+  // post user preference
+  {
+    url: '/vue-admin-template/user/preference',
+    type: 'post',
+    response: _ => {
+      return {
+        code: 20000,
+        data: 'success'
+      }
+    }
+  },
+
+  // get user preference
+  {
+    url: '/vue-admin-template/user/preference',
+    type: 'get',
+    response: _ => {
+      return {
+        code: 20000,
+        data: 'success'
+      }
+    }
   }
 ]

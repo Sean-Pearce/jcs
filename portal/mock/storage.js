@@ -10,7 +10,8 @@ const data = Mock.mock({
 })
 
 const site = Mock.mock({
-  'items': ['bj', 'sh', 'gz']
+  'items': ['bj', 'sh', 'gz'],
+  'selected': ['bj', 'sh']
 })
 
 export default [
@@ -33,11 +34,13 @@ export default [
     type: 'get',
     response: config => {
       const items = site.items
+      const selected = site.selected
       return {
         code: 20000,
         data: {
           total: items.length,
-          items: items
+          items: items,
+          selected: selected
         }
       }
     }

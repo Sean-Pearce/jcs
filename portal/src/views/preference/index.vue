@@ -16,6 +16,7 @@
 
 <script>
 import { getSites } from '@/api/storage'
+import { setPreference } from '@/api/user'
 
 export default {
   data() {
@@ -33,16 +34,26 @@ export default {
     fetchData() {
       getSites().then(response => {
         this.sites = response.data.items
+        this.form.sites = response.data.selected
       })
     },
     onSubmit() {
-      this.$message('submitted')
+      setPreference(this.form).then(response => {
+        if (response.code === 20000) {
+          this.$message({
+            message: 'submitted',
+            type: 'success'
+          })
+        } else {
+          this.$message({
+            message: 'submitted',
+            type: 'danger'
+          })
+        }
+      })
     },
     onCancel() {
-      this.$message({
-        message: 'cancelled',
-        type: 'warning'
-      })
+      this.fetchData()
     }
   }
 }

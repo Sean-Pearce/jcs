@@ -22,3 +22,13 @@ export function logout() {
     method: 'post'
   })
 }
+
+export function setPreference(pref) {
+  return request({
+    url: '/vue-admin-template/user/preference',
+    method: 'post',
+    data: {
+      'preference': pref
+    }
+  })
+}
