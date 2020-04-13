@@ -30,7 +30,7 @@ export default {
     },
     svgClass() {
       if (this.className) {
-        return 'svg-icon ' + this.className
+        return 'svg-icon-' + this.className
       } else {
         return 'svg-icon'
       }
@@ -58,5 +58,13 @@ export default {
   background-color: currentColor;
   mask-size: cover!important;
   display: inline-block;
+}
+
+.svg-icon-larger {
+  width: 1.5em;
+  height:1.5em;
+  vertical-align: -0.4em;
+  fill: currentColor;
+  overflow: hidden;
 }
 </style>
