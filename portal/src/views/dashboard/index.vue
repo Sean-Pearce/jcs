@@ -1,6 +1,6 @@
 <template>
   <div class="app-container">
-    <el-button type="primary"><svg-icon icon-class="upload" class-name="larger" /> 上传文件</el-button>
+    <el-button type="primary"><svg-icon icon-class="upload" /> 上传文件</el-button>
     <el-table
       v-loading="listLoading"
       :data="files.filter(data => !search || data.filename.toLowerCase().includes(search.toLowerCase()))"
@@ -26,7 +26,7 @@
       <el-table-column
         align="right"
       >
-        <template slot="header" slot-scope="scope">
+        <template slot="header">
           <el-input
             v-model="search"
             size="mini"
