@@ -51,7 +51,7 @@
 </template>
 
 <script>
-import { getFiles } from '@/api/file'
+import { getFiles } from '@/api/storage'
 
 export default {
   data() {

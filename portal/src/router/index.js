@@ -51,7 +51,7 @@ export const constantRoutes = [
       path: 'dashboard',
       name: 'Dashboard',
       component: () => import('@/views/dashboard/index'),
-      meta: { title: '全部文件', icon: 'dashboard' }
+      meta: { title: '全部文件', icon: 'folder' }
     }]
   },
 
@@ -61,6 +61,7 @@ export const constantRoutes = [
     redirect: '/example/table',
     name: 'Example',
     meta: { title: 'Example', icon: 'example' },
+    hidden: true,
     children: [
       {
         path: 'table',
@@ -78,14 +79,27 @@ export const constantRoutes = [
   },
 
   {
-    path: '/form',
+    path: '/distribution',
     component: Layout,
     children: [
       {
         path: 'index',
         name: 'Form',
-        component: () => import('@/views/form/index'),
-        meta: { title: 'Form', icon: 'form' }
+        component: () => import('@/views/distribution/index'),
+        meta: { title: '文件分布', icon: 'map' }
+      }
+    ]
+  },
+
+  {
+    path: '/preference',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'Form',
+        component: () => import('@/views/preference/index'),
+        meta: { title: '存储方案', icon: 'setting' }
       }
     ]
   },
@@ -99,6 +113,7 @@ export const constantRoutes = [
       title: 'Nested',
       icon: 'nested'
     },
+    hidden: true,
     children: [
       {
         path: 'menu1',
@@ -153,8 +168,8 @@ export const constantRoutes = [
     component: Layout,
     children: [
       {
-        path: 'https://panjiachen.github.io/vue-element-admin-site/#/',
-        meta: { title: 'External Link', icon: 'link' }
+        path: 'https://github.com/Sean-Pearce/jcs',
+        meta: { title: 'Github', icon: 'link' }
       }
     ]
   },

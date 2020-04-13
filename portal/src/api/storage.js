@@ -23,3 +23,11 @@ export function download(params) {
     params
   })
 }
+
+export function getSites(params) {
+  return request({
+    url: '/vue-admin-template/site',
+    method: 'get',
+    params
+  })
+}
