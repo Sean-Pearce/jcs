@@ -46,13 +46,13 @@ export default {
 </script>
 
 <style scoped>
-.svg-icon {
+/* .svg-icon {
   width: 1em;
   height: 1em;
   vertical-align: -0.15em;
   fill: currentColor;
   overflow: hidden;
-}
+} */
 
 .svg-external-icon {
   background-color: currentColor;
@@ -60,7 +60,7 @@ export default {
   display: inline-block;
 }
 
-.svg-icon-larger {
+.svg-icon {
   width: 1.5em;
   height:1.5em;
   vertical-align: -0.4em;
