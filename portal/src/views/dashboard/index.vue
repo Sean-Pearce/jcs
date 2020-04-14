@@ -1,6 +1,11 @@
 <template>
   <div class="app-container">
-    <el-button type="primary"><svg-icon icon-class="upload" /> 上传文件</el-button>
+    <el-upload
+      action="foobar"
+      :http-request="handleUpload"
+    >
+      <el-button type="primary"><svg-icon icon-class="upload" /> 上传文件</el-button>
+    </el-upload>
     <el-table
       v-loading="listLoading"
       :data="files.filter(data => !search || data.filename.toLowerCase().includes(search.toLowerCase()))"
@@ -26,7 +31,7 @@
       <el-table-column
         align="right"
       >
-        <template slot="header">
+        <template slot="header" slot-scope="scope">
           <el-input
             v-model="search"
             size="mini"
@@ -37,12 +42,12 @@
           <el-button
             size="mini"
             type="primary"
-            @click="handleEdit(scope.$index, scope.row)"
+            @click="handleDownload(scope.row.filename)"
           >下载</el-button>
           <el-button
             size="mini"
             type="danger"
-            @click="handleDelete(scope.$index, scope.row)"
+            @click="handleDelete(scope.row.filename)"
           >删除</el-button>
         </template>
       </el-table-column>
@@ -51,12 +56,12 @@
 </template>
 
 <script>
-import { getFiles } from '@/api/storage'
+import { getFiles, upload, download } from '@/api/storage'
 
 export default {
   data() {
     return {
-      files: null,
+      files: [],
       search: ''
     }
   },
@@ -71,11 +76,14 @@ export default {
         this.listLoading = false
       })
     },
-    handleEdit(index, row) {
-      console.log(index, row)
+    handleUpload(req) {
+      upload(req)
     },
-    handleDelete(index, row) {
-      console.log(index, row)
+    handleDownload(filename) {
+      download(filename)
+    },
+    handleDelete(filename) {
+      console.log(filename)
     }
   }
 }

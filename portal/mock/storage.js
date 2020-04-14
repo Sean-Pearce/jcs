@@ -16,7 +16,7 @@ const site = Mock.mock({
 
 export default [
   {
-    url: '/vue-admin-template/file',
+    url: '/storage/list',
     type: 'get',
     response: config => {
       const items = data.items
@@ -30,7 +30,7 @@ export default [
     }
   },
   {
-    url: '/vue-admin-template/site',
+    url: '/user/site',
     type: 'get',
     response: config => {
       const items = site.items

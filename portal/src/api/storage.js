@@ -2,7 +2,7 @@ import request from '@/utils/request'
 
 export function getFiles(params) {
   return request({
-    url: '/vue-admin-template/file',
+    url: '/storage/list',
     method: 'get',
     params
   })
@@ -10,7 +10,7 @@ export function getFiles(params) {
 
 export function upload(params) {
   return request({
-    url: '/vue-admin-template/upload',
+    url: '/storage/upload',
     method: 'post',
     params
   })
@@ -18,7 +18,7 @@ export function upload(params) {
 
 export function download(params) {
   return request({
-    url: '/vue-admin-template/download',
+    url: '/storage/download',
     method: 'get',
     params
   })
@@ -26,7 +26,7 @@ export function download(params) {
 
 export function getSites(params) {
   return request({
-    url: '/vue-admin-template/site',
+    url: '/user/site',
     method: 'get',
     params
   })
