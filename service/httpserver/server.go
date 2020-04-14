@@ -17,7 +17,22 @@ const (
 	CodeLoggedIn     = 50012
 	CodeTokenExpired = 50014
 	CodeNoFile       = 50016
+	CodeNonToken     = 50018
 )
+
+func TokenAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := c.Request.FormValue("X-Token")
+		if _, ok := tokenMap[token]; !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"code": CodeNonToken,
+			})
+			return
+		}
+
+		c.Next()
+	}
+}
 
 func login(c *gin.Context) {
 	username := c.Request.FormValue("username")

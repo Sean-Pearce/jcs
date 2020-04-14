@@ -3,9 +3,9 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"fmt"
 	"io/ioutil"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
@@ -46,25 +46,19 @@ func init() {
 func main() {
 	defer db.Close()
 
-	// 创建
-	db.Create(&User{Name: "admin", Password: "admin"})
+	r := gin.Default()
+	r.POST("/api/user/login", login)
 
-	// 读取
-	var user User
-	db.First(&user)
-	fmt.Printf("%#v\n", user)
+	r.Use(TokenAuthMiddleware())
 
-	// 更新 - 更新product的price为2000
-	db.Model(&user).Update("password", "123")
+	r.GET("/api/user/info", info)
+	r.GET("/api/user/site", site)
+	r.POST("/api/user/logout", logout)
+	r.POST("/api/user/preference", preference)
 
-	user = User{}
-	db.First(&user, "name = ?", "admin")
-	fmt.Printf("%#v\n", user)
+	r.GET("/api/storage/list", list)
+	r.GET("/api/storage/download", download)
+	r.POST("/api/storage/upload", upload)
 
-	// 删除 - 删除product
-	db.Delete(&user)
-
-	user = User{}
-	db.First(&user, "name = ?", "admin")
-	fmt.Printf("%#v\n", user)
+	r.Run(*port)
 }
