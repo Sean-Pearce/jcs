@@ -1,28 +1,46 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 var (
-	dbPath   = flag.String("db", "db.db", "database path")
-	port     = flag.String("port", ":5002", "http server port")
-	tokenMap map[string]string
-	db       *gorm.DB
+	dbPath    = flag.String("db", "db.db", "database path")
+	port      = flag.String("port", ":5002", "http server port")
+	config    = flag.String("config", "config.json", "storage info")
+	tokenMap  map[string]string
+	clientMap map[string]*StorageClient
+	db        *gorm.DB
 )
 
 func init() {
+	flag.Parse()
+
 	var err error
 	db, err = gorm.Open("sqlite3", *dbPath)
 	if err != nil {
 		panic(err)
 	}
 	db.AutoMigrate(&User{}, &File{}, &Site{})
+
 	tokenMap = make(map[string]string)
+	clientMap = make(map[string]*StorageClient)
+
+	var clients []StorageClient
+	data, err := ioutil.ReadFile(*config)
+	if err != nil {
+		panic(err)
+	}
+	json.Unmarshal(data, &clients)
+	for i := range clients {
+		clientMap[clients[i].name] = &clients[i]
+	}
 }
 
 func main() {
