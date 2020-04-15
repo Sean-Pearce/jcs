@@ -15,6 +15,7 @@ var (
 	accessKey  = flag.String("ak", "", "access key")
 	secretKey  = flag.String("sk", "", "secret key")
 	useSSL     = flag.Bool("ssl", false, "minio use ssl")
+	debug      = flag.Bool("debug", false, "debug mode")
 )
 
 func main() {

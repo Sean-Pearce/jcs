@@ -17,6 +17,10 @@ const bucketName = "jcs"
 func init() {
 	flag.Parse()
 
+	if *debug {
+		log.SetLevel(log.DebugLevel)
+	}
+
 	// Initialize minio client
 	var err error
 	minioClient, err = minio.New(*endpoint, *accessKey, *secretKey, *useSSL)
