@@ -8,12 +8,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
 	dbPath    = flag.String("db", "db.db", "database path")
 	port      = flag.String("port", ":5002", "http server port")
 	config    = flag.String("config", "config.json", "storage info")
+	debug     = flag.Bool("debug", false, "debug mode")
 	tokenMap  map[string]string
 	clientMap map[string]*StorageClient
 	db        *gorm.DB
@@ -21,6 +23,10 @@ var (
 
 func init() {
 	flag.Parse()
+
+	if *debug {
+		log.SetLevel(log.DebugLevel)
+	}
 
 	var err error
 	db, err = gorm.Open("sqlite3", *dbPath)
