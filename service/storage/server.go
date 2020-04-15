@@ -57,6 +57,7 @@ func upload(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "file not found",
 		})
+		log.WithError(err).Debug("file not found")
 		return
 	}
 
@@ -65,6 +66,7 @@ func upload(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "open file error",
 		})
+		log.WithError(err).Debug("open file error")
 		return
 	}
 	defer body.Close()
@@ -75,6 +77,7 @@ func upload(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid filename",
 		})
+		log.Debug("invalid filename")
 		return
 	}
 	objName := path.Join(user, filename)

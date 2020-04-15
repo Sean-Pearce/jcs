@@ -22,12 +22,12 @@ const (
 
 func TokenAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := c.Request.FormValue("X-Token")
+		token := c.GetHeader("X-Token")
 		if _, ok := tokenMap[token]; !ok {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"code": CodeNonToken,
 			})
-			return
+			c.Abort()
 		}
 
 		c.Next()
@@ -41,7 +41,7 @@ func login(c *gin.Context) {
 	var user User
 	db.First(&user, "name = ?", username)
 	if user.Password != password {
-		c.JSON(http.StatusUnauthorized, gin.H{
+		c.JSON(http.StatusOK, gin.H{
 			"code":    CodeAuthFail,
 			"message": "Account and password are incorrect.",
 		})
@@ -53,12 +53,14 @@ func login(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": CodeOK,
-		"data": token,
+		"data": gin.H{
+			"token": token,
+		},
 	})
 }
 
 func logout(c *gin.Context) {
-	token := c.Request.FormValue("X-Token")
+	token := c.GetHeader("X-Token")
 	delete(tokenMap, token)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -68,7 +70,7 @@ func logout(c *gin.Context) {
 }
 
 func info(c *gin.Context) {
-	username := getUsernameByToken(c.Request.FormValue("X-Token"))
+	username := getUsernameByToken(c.GetHeader("X-Token"))
 
 	var user User
 	db.First(&user, "name = ?", username)
@@ -83,48 +85,82 @@ func info(c *gin.Context) {
 }
 
 func list(c *gin.Context) {
-	username := getUsernameByToken(c.Request.FormValue("X-Token"))
+	username := getUsernameByToken(c.GetHeader("X-Token"))
 
 	var user User
-	db.First(&user, "name = ?", username)
+	db.Preload("Preference.Sites").Preload("Files.Sites").Find(&user, "name = ?", username)
+
+	files := []gin.H{}
+	for _, f := range user.Files {
+		sites := []string{}
+		for _, site := range f.Sites {
+			sites = append(sites, site.Name)
+		}
+
+		files = append(files, gin.H{
+			"filename":      f.Name,
+			"size":          f.Size,
+			"last_modified": f.LastModified,
+			"sites":         sites,
+		})
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": CodeOK,
 		"data": gin.H{
-			"total": len(user.Files),
-			"items": user.Files,
+			"total": len(files),
+			"items": files,
 		},
 	})
 }
 
 func site(c *gin.Context) {
-	username := getUsernameByToken(c.Request.FormValue("X-Token"))
+	username := getUsernameByToken(c.GetHeader("X-Token"))
 
 	var user User
-	db.First(&user, "name = ?", username)
-	var sites []Site
-	db.Find(&sites)
+	db.Preload("Preference.Sites").Preload("Files.Sites").Find(&user, "name = ?", username)
+
+	siteResp := []string{}
+	selectedResp := []string{}
+	for site := range clientMap {
+		siteResp = append(siteResp, site)
+	}
+	for _, site := range user.Preference.Sites {
+		selectedResp = append(selectedResp, site.Name)
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": CodeOK,
 		"data": gin.H{
-			"total":    len(sites),
-			"items":    sites,
-			"selected": user.Preference.Sites,
+			"total":    len(siteResp),
+			"items":    siteResp,
+			"selected": selectedResp,
 		},
 	})
 }
 
 func preference(c *gin.Context) {
-	username := getUsernameByToken(c.Request.FormValue("X-Token"))
+	username := getUsernameByToken(c.GetHeader("X-Token"))
 
-	var prefMap map[string]interface{}
-	c.BindJSON(&prefMap)
-	rsites := prefMap["preference"].(map[string]interface{})["sites"].([]string)
+	var user User
+	db.Preload("Preference.Sites").Preload("Files.Sites").Find(&user, "name = ?", username)
+
+	var req struct {
+		Preference struct {
+			Sites []string
+		}
+	}
+	c.BindJSON(&req)
 
 	var sites []Site
-	db.Find(&sites, "name IN (?)", rsites)
-	db.Model(&User{}).Where("name = ?", username).Update("preference", Preference{Sites: sites})
+	for _, site := range req.Preference.Sites {
+		sites = append(sites, Site{Name: site})
+	}
+
+	user.Preference = Preference{
+		Sites: sites,
+	}
+	db.Save(&user)
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": CodeOK,
@@ -133,9 +169,9 @@ func preference(c *gin.Context) {
 }
 
 func upload(c *gin.Context) {
-	username := getUsernameByToken(c.Request.FormValue("X-Token"))
+	username := getUsernameByToken(c.GetHeader("X-Token"))
 	var user User
-	db.First(&user, "name = ?", username)
+	db.Preload("Preference.Sites").Preload("Files.Sites").Find(&user, "name = ?", username)
 
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -159,7 +195,7 @@ func upload(c *gin.Context) {
 	var sites []Site
 	for _, site := range user.Preference.Sites {
 		resp, err := clientMap[site.Name].upload(body, filename)
-		if err != nil || resp.StatusCode != 200 {
+		if err != nil || resp.StatusCode != http.StatusCreated {
 			logrus.WithError(err).Errorf("upload %v to %v failed", filename, site.Name)
 			continue
 		}
@@ -167,13 +203,13 @@ func upload(c *gin.Context) {
 		sites = append(sites, Site{Name: site.Name})
 	}
 
-	f := File{
-		Name:         filename,
+	user.Files = append(user.Files, File{
+		Name:         file.Filename,
 		Size:         file.Size,
 		LastModified: time.Now().Unix(),
 		Sites:        sites,
-	}
-	db.Save(&f)
+	})
+	db.Save(&user)
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": CodeOK,
@@ -182,7 +218,7 @@ func upload(c *gin.Context) {
 }
 
 func download(c *gin.Context) {
-	username := getUsernameByToken(c.Request.FormValue("X-Token"))
+	username := getUsernameByToken(c.GetHeader("X-Token"))
 	filename := path.Join(username, c.Request.FormValue("filename"))
 
 	var file File

@@ -8,11 +8,17 @@ export function getFiles(params) {
   })
 }
 
-export function upload(params) {
+export function upload(item) {
+  var form_data = new FormData()
+  console.log(item)
+  form_data.append('file', item.file)
   return request({
     url: '/storage/upload',
     method: 'post',
-    params
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    },
+    data: form_data
   })
 }
 

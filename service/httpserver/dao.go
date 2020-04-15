@@ -16,16 +16,19 @@ type File struct {
 	Name         string
 	Size         int64
 	LastModified int64
-	Sites        []Site `gorm:"many2many:file_site"`
-	UserID       uint
+	Sites        []Site `gorm:"polymorphic:Owner;"`
+	UserID       int
 }
 
 type Preference struct {
 	gorm.Model
-	Sites []Site `gorm:"many2many:preference_site"`
+	Sites  []Site `gorm:"polymorphic:Owner;"`
+	UserID int
 }
 
 type Site struct {
 	gorm.Model
-	Name string
+	Name      string
+	OwnerID   int
+	OwnerType string
 }

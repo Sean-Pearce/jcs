@@ -25,7 +25,7 @@
       />
       <el-table-column class-name="status-col" label="位置">
         <template slot-scope="scope">
-          <el-tag v-for="loc in scope.row.location" :key="loc" type="info">{{ loc }}</el-tag>
+          <el-tag v-for="loc in scope.row.sites" :key="loc" type="info">{{ loc }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column
@@ -62,7 +62,8 @@ export default {
   data() {
     return {
       files: [],
-      search: ''
+      search: '',
+      listLoading: false
     }
   },
   created() {
@@ -78,6 +79,7 @@ export default {
     },
     handleUpload(req) {
       upload(req)
+      this.fetchData()
     },
     handleDownload(filename) {
       download(filename)

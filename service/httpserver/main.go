@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"io/ioutil"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
@@ -33,7 +34,32 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	db.AutoMigrate(&User{}, &File{}, &Site{})
+
+	// 重置数据库
+	db.DropTableIfExists(&User{}, &File{}, &Preference{}, &Site{})
+	db.AutoMigrate(&User{}, &File{}, &Preference{}, &Site{})
+
+	user := User{
+		Name:     "admin",
+		Password: "admin",
+		Role:     "admin",
+		Preference: Preference{
+			Sites: []Site{
+				Site{Name: "bj"},
+			},
+		},
+		Files: []File{
+			File{
+				Name:         "testfile",
+				Size:         1024,
+				LastModified: time.Now().Unix(),
+				Sites: []Site{
+					Site{Name: "bj"},
+				},
+			},
+		},
+	}
+	db.Save(&user)
 
 	tokenMap = make(map[string]string)
 	clientMap = make(map[string]*StorageClient)
@@ -45,7 +71,7 @@ func init() {
 	}
 	json.Unmarshal(data, &clients)
 	for i := range clients {
-		clientMap[clients[i].name] = &clients[i]
+		clientMap[clients[i].Name] = &clients[i]
 	}
 }
 

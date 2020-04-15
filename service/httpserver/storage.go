@@ -14,10 +14,10 @@ const (
 )
 
 type StorageClient struct {
-	name     string
-	endpoint string
-	username string
-	password string
+	Name     string
+	Endpoint string
+	Username string
+	Password string
 }
 
 func newStorageClient(name, endpoint, username, password string) *StorageClient {
@@ -27,7 +27,7 @@ func newStorageClient(name, endpoint, username, password string) *StorageClient 
 func (c *StorageClient) ping() (*http.Response, error) {
 	client := resty.New()
 
-	resp, err := client.R().SetBasicAuth(c.username, c.password).Get(c.endpoint + pingPath)
+	resp, err := client.R().SetBasicAuth(c.Username, c.Password).Get(c.Endpoint + pingPath)
 	if err != nil {
 		return nil, err
 	}
@@ -39,12 +39,12 @@ func (c *StorageClient) upload(file io.Reader, filename string) (*http.Response,
 	client := resty.New()
 
 	resp, err := client.R().
-		SetFileReader(filename, filename, file).
+		SetFileReader("file", filename, file).
 		SetFormData(map[string]string{
 			"filename": filename,
 		}).
-		SetBasicAuth(c.username, c.password).
-		Post(c.endpoint + uploadPath)
+		SetBasicAuth(c.Username, c.Password).
+		Post(c.Endpoint + uploadPath)
 	if err != nil {
 		return nil, err
 	}
@@ -57,8 +57,8 @@ func (c *StorageClient) download(filename string) (*http.Response, error) {
 
 	resp, err := client.R().
 		SetQueryParam(filename, filename).
-		SetBasicAuth(c.username, c.password).
-		Get(c.endpoint + pingPath)
+		SetBasicAuth(c.Username, c.Password).
+		Get(c.Endpoint + pingPath)
 	if err != nil {
 		return nil, err
 	}
