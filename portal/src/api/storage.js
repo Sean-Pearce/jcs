@@ -26,7 +26,9 @@ export function download(params) {
   return request({
     url: '/storage/download',
     method: 'get',
-    params
+    params: {
+      filename: params
+    }
   })
 }
 

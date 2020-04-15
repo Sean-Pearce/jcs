@@ -79,7 +79,6 @@ export default {
     },
     handleUpload(req) {
       upload(req)
-      this.fetchData()
     },
     handleDownload(filename) {
       download(filename)

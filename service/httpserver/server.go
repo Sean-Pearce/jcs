@@ -219,7 +219,7 @@ func upload(c *gin.Context) {
 
 func download(c *gin.Context) {
 	username := getUsernameByToken(c.GetHeader("X-Token"))
-	filename := path.Join(username, c.Request.FormValue("filename"))
+	filename := c.Query("filename")
 
 	var file File
 	db.First(&file, "name = ?", filename)
@@ -229,6 +229,8 @@ func download(c *gin.Context) {
 		})
 		return
 	}
+
+	filename = path.Join(username, filename)
 
 	resp, err := clientMap[file.Sites[0].Name].download(filename)
 	if err != nil || resp.StatusCode != http.StatusOK {
