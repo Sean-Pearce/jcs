@@ -13,7 +13,7 @@ import (
 
 var (
 	dbPath    = flag.String("db", "db.db", "database path")
-	port      = flag.String("port", ":5002", "http server port")
+	port      = flag.String("port", ":5000", "http server port")
 	config    = flag.String("config", "config.json", "storage info")
 	debug     = flag.Bool("debug", false, "debug mode")
 	tokenMap  map[string]string
