@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"path"
 	"time"
 
 	"github.com/Sean-Pearce/jcs/service/httpserver/dao"
+	pb "github.com/Sean-Pearce/jcs/service/scheduler/proto"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
@@ -196,8 +198,22 @@ func upload(c *gin.Context) {
 		return
 	}
 
+	ctx, _ := context.WithTimeout(context.Background(), time.Second)
+	resp, err := s.Schedule(
+		ctx,
+		&pb.ScheduleRequest{Sites: strategy.Sites},
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    CodeInternalError,
+			"message": "Something is wrong.",
+		})
+		log.WithError(err).Errorf("schedule for %v, sites are %v", username, strategy.Sites)
+		return
+	}
+
 	var sites []string
-	for _, site := range strategy.Sites {
+	for _, site := range resp.Sites {
 		resp, err := clientMap[site].Upload(body, filename)
 		if err != nil || resp.StatusCode != http.StatusCreated {
 			log.WithError(err).Errorf("upload %v to %v failed", filename, site)

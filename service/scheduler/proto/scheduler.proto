@@ -12,5 +12,5 @@ message ScheduleRequest {
 }
 
 message ScheduleResponse {
-    string site = 1;
+    repeated string sites = 1;
 }

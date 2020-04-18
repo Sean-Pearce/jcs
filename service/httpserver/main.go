@@ -6,9 +6,11 @@ import (
 	"io/ioutil"
 
 	"github.com/Sean-Pearce/jcs/service/httpserver/dao"
+	pb "github.com/Sean-Pearce/jcs/service/scheduler/proto"
 	"github.com/Sean-Pearce/jcs/service/storage/client"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 )
 
 const (
@@ -16,13 +18,15 @@ const (
 )
 
 var (
-	mongoURL  = flag.String("mongo", "mongodb://localhost:27017", "mongodb server address")
-	port      = flag.String("port", ":5000", "http server port")
-	config    = flag.String("accounts", "accounts.json", "accounts for storage backends")
-	debug     = flag.Bool("debug", false, "debug mode")
-	tokenMap  map[string]string
-	clientMap map[string]*client.StorageClient
-	d         *dao.Dao
+	mongoURL      = flag.String("mongo", "mongodb://localhost:27017", "mongodb server address")
+	schedulerAddr = flag.String("sched", "localhost:5001", "scheduler address")
+	port          = flag.String("port", ":5000", "http server port")
+	config        = flag.String("accounts", "accounts.json", "accounts for storage backends")
+	debug         = flag.Bool("debug", false, "debug mode")
+	tokenMap      map[string]string
+	clientMap     map[string]*client.StorageClient
+	d             *dao.Dao
+	s             pb.SchedulerClient
 )
 
 func init() {
@@ -51,6 +55,13 @@ func init() {
 	for i := range clients {
 		clientMap[clients[i].Name] = &clients[i]
 	}
+
+	conn, err := grpc.Dial(*schedulerAddr, grpc.WithInsecure())
+	if err != nil {
+		panic(err)
+	}
+
+	s = pb.NewSchedulerClient(conn)
 }
 
 func main() {

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	pb "github.com/Sean-Pearce/jcs/service/scheduler/proto"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 )
@@ -16,15 +17,15 @@ const bufSize = 1024 * 1024
 var (
 	tests = []struct {
 		sites []string
-		want  string
+		want  []string
 	}{
 		{
 			sites: nil,
-			want:  "",
+			want:  nil,
 		},
 		{
 			sites: []string{"a", "b", "c"},
-			want:  "a",
+			want:  []string{"a", "b", "c"},
 		},
 	}
 	lis *bufconn.Listener
@@ -53,9 +54,7 @@ func TestLocal(t *testing.T) {
 		if err != nil {
 			t.Skipf("Schedule(%v) got unexpected error: %v", *req, err)
 		}
-		if resp.Site != test.want {
-			t.Errorf("Schedule(%v) = %v, want %v", *req, resp.Site, test.want)
-		}
+		require.Equal(t, resp.Sites, test.want)
 	}
 }
 
@@ -74,8 +73,6 @@ func TestGrpc(t *testing.T) {
 		if err != nil {
 			t.Skipf("client.Schedule(%v) got unexpected error: %v", *req, err)
 		}
-		if resp.Site != test.want {
-			t.Errorf("Schedule(%v) = %v, want %v", *req, resp.Site, test.want)
-		}
+		require.Equal(t, resp.Sites, test.want)
 	}
 }

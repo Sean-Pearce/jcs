@@ -22,6 +22,6 @@ func (s *scheduler) Schedule(ctx context.Context, req *pb.ScheduleRequest) (*pb.
 		return nil, errors.New("no site info provided")
 	}
 
-	res.Site = req.Sites[0]
+	res.Sites = req.Sites
 	return res, nil
 }
