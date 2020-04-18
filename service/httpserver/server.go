@@ -99,6 +99,7 @@ func list(c *gin.Context) {
 			"code":    CodeInternalError,
 			"message": "Something is wrong.",
 		})
+		log.WithError(err).Errorf("get %v's files", username)
 		return
 	}
 
@@ -120,6 +121,7 @@ func getStrategy(c *gin.Context) {
 			"code":    CodeInternalError,
 			"message": "Something is wrong.",
 		})
+		log.WithError(err).Errorf("get %v's strategy", username)
 		return
 	}
 
@@ -150,6 +152,7 @@ func setStrategy(c *gin.Context) {
 			"code":    CodeInternalError,
 			"message": "Something is wrong.",
 		})
+		log.WithError(err).Errorf("set %v's strategy", username)
 		return
 	}
 
@@ -189,6 +192,7 @@ func upload(c *gin.Context) {
 			"code":    CodeInternalError,
 			"message": "Something is wrong.",
 		})
+		log.WithError(err).Errorf("get %v's strategy", username)
 		return
 	}
 
@@ -214,6 +218,7 @@ func upload(c *gin.Context) {
 			"code":    CodeInternalError,
 			"message": "Something is wrong.",
 		})
+		log.WithError(err).Errorf("add file %v for %v", filename, username)
 		return
 	}
 
