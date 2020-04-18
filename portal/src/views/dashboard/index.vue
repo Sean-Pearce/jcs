@@ -78,7 +78,10 @@ export default {
       })
     },
     handleUpload(req) {
-      upload(req)
+      var self = this
+      upload(req).then(() => {
+        self.fetchData()
+      })
     },
     handleDownload(filename) {
       download(filename).then(response => {
