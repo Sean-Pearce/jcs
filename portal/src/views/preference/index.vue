@@ -15,8 +15,7 @@
 </template>
 
 <script>
-import { getSites } from '@/api/storage'
-import { setPreference } from '@/api/user'
+import { setStrategy, getStrategy } from '@/api/user'
 
 export default {
   data() {
@@ -32,14 +31,14 @@ export default {
   },
   methods: {
     fetchData() {
-      getSites().then(response => {
-        this.sites = response.data.items
-        this.form.sites = response.data.selected
+      getStrategy().then(response => {
+        this.sites = response.data.sites
+        this.form.sites = response.data.strategy.sites
       })
     },
     onSubmit() {
-      setPreference(this.form).then(response => {
-        if (response.code === 20000) {
+      setStrategy(this.form).then(response => {
+        if (response.code === 9200) {
           this.$message({
             message: 'submitted',
             type: 'success'

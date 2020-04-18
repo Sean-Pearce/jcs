@@ -127,15 +127,10 @@ func getStrategy(c *gin.Context) {
 		return
 	}
 
-	sites := []string{}
-	for site := range clientMap {
-		sites = append(sites, site)
-	}
-
 	c.JSON(http.StatusOK, gin.H{
 		"code": CodeOK,
 		"data": gin.H{
-			"sites":    sites,
+			"sites":    clientList,
 			"strategy": strategy,
 		},
 	})
@@ -263,11 +258,12 @@ func download(c *gin.Context) {
 			"code":    CodeInternalError,
 			"message": "Something is wrong.",
 		})
-		logrus.WithError(err).Errorf("download %v from %v failed", filename, file.Sites[0])
+		logrus.WithError(err).Errorf("download %v from %v failed", filename, file.Sites[0], resp.StatusCode)
 		return
 	}
+	defer resp.Body.Close()
 
-	c.DataFromReader(http.StatusOK, file.Size, "multipart/form-data", resp.Body, map[string]string{
+	c.DataFromReader(http.StatusOK, resp.ContentLength, "multipart/form-data", resp.Body, map[string]string{
 		"Content-Disposition": "attachment; filename=" + filename,
 	})
 }

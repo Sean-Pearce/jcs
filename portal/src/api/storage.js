@@ -28,14 +28,7 @@ export function download(params) {
     method: 'get',
     params: {
       filename: params
-    }
-  })
-}
-
-export function getSites(params) {
-  return request({
-    url: '/user/site',
-    method: 'get',
-    params
+    },
+    responseType: 'blob'
   })
 }

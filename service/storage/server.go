@@ -98,7 +98,7 @@ func upload(c *gin.Context) {
 
 func download(c *gin.Context) {
 	user, _, _ := c.Request.BasicAuth()
-	filename := c.PostForm("filename")
+	filename := c.Query("filename")
 	if !validateFilename(filename) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid filename",

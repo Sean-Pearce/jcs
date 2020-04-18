@@ -25,6 +25,7 @@ var (
 	debug         = flag.Bool("debug", false, "debug mode")
 	tokenMap      map[string]string
 	clientMap     map[string]*client.StorageClient
+	clientList    []string
 	d             *dao.Dao
 	s             pb.SchedulerClient
 )
@@ -53,6 +54,7 @@ func init() {
 	json.Unmarshal(data, &clients)
 	for i := range clients {
 		clientMap[clients[i].Name] = &clients[i]
+		clientList = append(clientList, clients[i].Name)
 	}
 
 	conn, err := grpc.Dial(*schedulerAddr, grpc.WithInsecure())

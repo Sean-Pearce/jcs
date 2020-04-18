@@ -27,12 +27,17 @@ export function logout() {
   })
 }
 
-export function setPreference(pref) {
+export function setStrategy(pref) {
   return request({
-    url: '/user/preference',
+    url: '/user/strategy',
     method: 'post',
-    data: {
-      'preference': pref
-    }
+    data: pref
+  })
+}
+
+export function getStrategy() {
+  return request({
+    url: '/user/strategy',
+    method: 'get'
   })
 }

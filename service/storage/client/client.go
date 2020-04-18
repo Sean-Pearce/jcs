@@ -61,9 +61,10 @@ func (c *StorageClient) Download(filename string) (*http.Response, error) {
 	client := resty.New()
 
 	resp, err := client.R().
-		SetQueryParam(filename, filename).
+		SetQueryParam("filename", filename).
 		SetBasicAuth(c.Username, c.Password).
-		Get(c.Endpoint + pingPath)
+		SetDoNotParseResponse(true).
+		Get(c.Endpoint + downloadPath)
 	if err != nil {
 		return nil, err
 	}

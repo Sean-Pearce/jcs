@@ -26,14 +26,14 @@ type User struct {
 }
 
 type File struct {
-	Filename     string
-	Size         int64
-	LastModified int64
-	Sites        []string
+	Filename     string   `json:"filename"`
+	Size         int64    `json:"size"`
+	LastModified int64    `json:"last_modified"`
+	Sites        []string `json:"sites"`
 }
 
 type Strategy struct {
-	Sites []string
+	Sites []string `json:"sites"`
 }
 
 // NewDao constructs a data access object (Dao).
