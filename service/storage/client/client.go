@@ -15,10 +15,10 @@ const (
 
 // StorageClient is a client of storage service.
 type StorageClient struct {
-	name     string
-	endpoint string
-	username string
-	password string
+	Name     string
+	Endpoint string
+	Username string
+	Password string
 }
 
 // NewStorageClient constructs a new storage client.
@@ -30,7 +30,7 @@ func NewStorageClient(name, endpoint, username, password string) *StorageClient 
 func (c *StorageClient) Ping() (*http.Response, error) {
 	client := resty.New()
 
-	resp, err := client.R().SetBasicAuth(c.username, c.password).Get(c.endpoint + pingPath)
+	resp, err := client.R().SetBasicAuth(c.Username, c.Password).Get(c.Endpoint + pingPath)
 	if err != nil {
 		return nil, err
 	}
@@ -47,8 +47,8 @@ func (c *StorageClient) Upload(file io.Reader, filename string) (*http.Response,
 		SetFormData(map[string]string{
 			"filename": filename,
 		}).
-		SetBasicAuth(c.username, c.password).
-		Post(c.endpoint + uploadPath)
+		SetBasicAuth(c.Username, c.Password).
+		Post(c.Endpoint + uploadPath)
 	if err != nil {
 		return nil, err
 	}
@@ -62,8 +62,8 @@ func (c *StorageClient) Download(filename string) (*http.Response, error) {
 
 	resp, err := client.R().
 		SetQueryParam(filename, filename).
-		SetBasicAuth(c.username, c.password).
-		Get(c.endpoint + pingPath)
+		SetBasicAuth(c.Username, c.Password).
+		Get(c.Endpoint + pingPath)
 	if err != nil {
 		return nil, err
 	}

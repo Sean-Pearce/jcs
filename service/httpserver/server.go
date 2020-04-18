@@ -5,19 +5,19 @@ import (
 	"path"
 	"time"
 
+	"github.com/Sean-Pearce/jcs/service/httpserver/dao"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
-	CodeOK           = 20000
-	CodeAuthFail     = 60204
-	CodeUserNonexist = 50008
-	CodeIllegalToken = 50008
-	CodeLoggedIn     = 50012
-	CodeTokenExpired = 50014
-	CodeNoFile       = 50016
-	CodeNonToken     = 50018
+	CodeOK            = 9200
+	CodeUploadError   = 9400
+	CodeAuthFail      = 9401
+	CodeInvalidToken  = 9402
+	CodeFileNotExists = 9404
+	CodeInternalError = 9500
 )
 
 func TokenAuthMiddleware() gin.HandlerFunc {
@@ -25,7 +25,8 @@ func TokenAuthMiddleware() gin.HandlerFunc {
 		token := c.GetHeader("X-Token")
 		if _, ok := tokenMap[token]; !ok {
 			c.JSON(http.StatusUnauthorized, gin.H{
-				"code": CodeNonToken,
+				"code":    CodeInvalidToken,
+				"message": "Invalid token",
 			})
 			c.Abort()
 		}
@@ -38,10 +39,9 @@ func login(c *gin.Context) {
 	username := c.Request.FormValue("username")
 	password := c.Request.FormValue("password")
 
-	var user User
-	db.First(&user, "name = ?", username)
-	if user.Password != password {
-		c.JSON(http.StatusOK, gin.H{
+	user, err := d.GetUserInfo(username)
+	if err != nil || user.Password != password {
+		c.JSON(http.StatusUnauthorized, gin.H{
 			"code":    CodeAuthFail,
 			"message": "Account and password are incorrect.",
 		})
@@ -64,16 +64,22 @@ func logout(c *gin.Context) {
 	delete(tokenMap, token)
 
 	c.JSON(http.StatusOK, gin.H{
-		"code": CodeOK,
-		"data": "success",
+		"code":    CodeOK,
+		"message": "See you ~",
 	})
 }
 
 func info(c *gin.Context) {
 	username := getUsernameByToken(c.GetHeader("X-Token"))
 
-	var user User
-	db.First(&user, "name = ?", username)
+	user, err := d.GetUserInfo(username)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"code":    CodeInvalidToken,
+			"message": "User not exist.",
+		})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": CodeOK,
@@ -87,96 +93,81 @@ func info(c *gin.Context) {
 func list(c *gin.Context) {
 	username := getUsernameByToken(c.GetHeader("X-Token"))
 
-	var user User
-	db.Preload("Preference.Sites").Preload("Files.Sites").Find(&user, "name = ?", username)
-
-	files := []gin.H{}
-	for _, f := range user.Files {
-		sites := []string{}
-		for _, site := range f.Sites {
-			sites = append(sites, site.Name)
-		}
-
-		files = append(files, gin.H{
-			"filename":      f.Name,
-			"size":          f.Size,
-			"last_modified": f.LastModified,
-			"sites":         sites,
+	files, err := d.GetUserFiles(username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    CodeInternalError,
+			"message": "Something is wrong.",
 		})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": CodeOK,
 		"data": gin.H{
-			"total": len(files),
+			"total": len(*files),
 			"items": files,
 		},
 	})
 }
 
-func site(c *gin.Context) {
+func getStrategy(c *gin.Context) {
 	username := getUsernameByToken(c.GetHeader("X-Token"))
 
-	var user User
-	db.Preload("Preference.Sites").Preload("Files.Sites").Find(&user, "name = ?", username)
-
-	siteResp := []string{}
-	selectedResp := []string{}
-	for site := range clientMap {
-		siteResp = append(siteResp, site)
+	strategy, err := d.GetUserStrategy(username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    CodeInternalError,
+			"message": "Something is wrong.",
+		})
+		return
 	}
-	for _, site := range user.Preference.Sites {
-		selectedResp = append(selectedResp, site.Name)
+
+	sites := []string{}
+	for site := range clientMap {
+		sites = append(sites, site)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": CodeOK,
 		"data": gin.H{
-			"total":    len(siteResp),
-			"items":    siteResp,
-			"selected": selectedResp,
+			"sites":    sites,
+			"strategy": strategy,
 		},
 	})
 }
 
-func preference(c *gin.Context) {
+func setStrategy(c *gin.Context) {
 	username := getUsernameByToken(c.GetHeader("X-Token"))
 
-	var user User
-	db.Preload("Preference.Sites").Preload("Files.Sites").Find(&user, "name = ?", username)
+	// TODO: validate form
+	var strategy dao.Strategy
+	c.BindJSON(&strategy)
 
-	var req struct {
-		Preference struct {
-			Sites []string
-		}
+	err := d.SetUserStrategy(username, strategy)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    CodeInternalError,
+			"message": "Something is wrong.",
+		})
+		return
 	}
-	c.BindJSON(&req)
-
-	var sites []Site
-	for _, site := range req.Preference.Sites {
-		sites = append(sites, Site{Name: site})
-	}
-
-	user.Preference = Preference{
-		Sites: sites,
-	}
-	db.Save(&user)
 
 	c.JSON(http.StatusOK, gin.H{
-		"code": CodeOK,
-		"data": "success",
+		"code":    CodeOK,
+		"message": "Set strategy successfully",
 	})
 }
 
 func upload(c *gin.Context) {
 	username := getUsernameByToken(c.GetHeader("X-Token"))
-	var user User
-	db.Preload("Preference.Sites").Preload("Files.Sites").Find(&user, "name = ?", username)
 
+	// TODO: FormFile reads all c.body
 	file, err := c.FormFile("file")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"code": CodeNoFile,
+			"code":    CodeUploadError,
+			"message": "Form key must be 'file'",
 		})
 		return
 	}
@@ -186,34 +177,48 @@ func upload(c *gin.Context) {
 	body, err := file.Open()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "open file error",
+			"code":    CodeUploadError,
+			"message": "Cannot open file",
 		})
 		return
 	}
-	defer body.Close()
 
-	var sites []Site
-	for _, site := range user.Preference.Sites {
-		resp, err := clientMap[site.Name].upload(body, filename)
-		if err != nil || resp.StatusCode != http.StatusCreated {
-			logrus.WithError(err).Errorf("upload %v to %v failed", filename, site.Name)
-			continue
-		}
-
-		sites = append(sites, Site{Name: site.Name})
+	strategy, err := d.GetUserStrategy(username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    CodeInternalError,
+			"message": "Something is wrong.",
+		})
+		return
 	}
 
-	user.Files = append(user.Files, File{
-		Name:         file.Filename,
+	var sites []string
+	for _, site := range strategy.Sites {
+		resp, err := clientMap[site].Upload(body, filename)
+		if err != nil || resp.StatusCode != http.StatusCreated {
+			log.WithError(err).Errorf("upload %v to %v failed", filename, site)
+			continue
+		}
+		sites = append(sites, site)
+	}
+
+	item := dao.File{
+		Filename:     file.Filename,
 		Size:         file.Size,
 		LastModified: time.Now().Unix(),
 		Sites:        sites,
-	})
-	db.Save(&user)
+	}
+	err = d.AddFile(username, item)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    CodeInternalError,
+			"message": "Something is wrong.",
+		})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": CodeOK,
-		"data": "success",
 	})
 }
 
@@ -221,27 +226,27 @@ func download(c *gin.Context) {
 	username := getUsernameByToken(c.GetHeader("X-Token"))
 	filename := c.Query("filename")
 
-	var file File
-	db.First(&file, "name = ?", filename)
-	if file.Name != filename {
+	file, err := d.GetFileInfo(username, filename)
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "file not exist",
+			"code":    CodeFileNotExists,
+			"message": "The given file not exists.",
 		})
 		return
 	}
 
-	filename = path.Join(username, filename)
-
-	resp, err := clientMap[file.Sites[0].Name].download(filename)
+	// TODO: choose best site
+	resp, err := clientMap[file.Sites[0]].Download(path.Join(username, filename))
 	if err != nil || resp.StatusCode != http.StatusOK {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "download from storage failed",
+			"code":    CodeInternalError,
+			"message": "Something is wrong.",
 		})
-		logrus.WithError(err).Errorf("download %v from %v failed", filename, file.Sites[0].Name)
+		logrus.WithError(err).Errorf("download %v from %v failed", filename, file.Sites[0])
 		return
 	}
 
 	c.DataFromReader(http.StatusOK, file.Size, "multipart/form-data", resp.Body, map[string]string{
-		"Content-Disposition": "attachment; filename=" + c.Request.FormValue("filename"),
+		"Content-Disposition": "attachment; filename=" + filename,
 	})
 }

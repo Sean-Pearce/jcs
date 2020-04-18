@@ -4,67 +4,45 @@ import (
 	"encoding/json"
 	"flag"
 	"io/ioutil"
-	"time"
 
+	"github.com/Sean-Pearce/jcs/service/httpserver/dao"
+	"github.com/Sean-Pearce/jcs/service/storage/client"
 	"github.com/gin-gonic/gin"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	version = "0.1"
+)
+
 var (
-	dbPath    = flag.String("db", "db.db", "database path")
+	mongoURL  = flag.String("mongo", "mongodb://localhost:27017", "mongodb server address")
 	port      = flag.String("port", ":5000", "http server port")
-	config    = flag.String("config", "config.json", "storage info")
+	config    = flag.String("accounts", "accounts.json", "accounts for storage backends")
 	debug     = flag.Bool("debug", false, "debug mode")
 	tokenMap  map[string]string
-	clientMap map[string]*StorageClient
-	db        *gorm.DB
+	clientMap map[string]*client.StorageClient
+	d         *dao.Dao
 )
 
 func init() {
 	flag.Parse()
 
+	log.Infoln("Starting httpserver v", version)
 	if *debug {
 		log.SetLevel(log.DebugLevel)
 	}
 
 	var err error
-	db, err = gorm.Open("sqlite3", *dbPath)
+	d, err = dao.NewDao(*mongoURL, "jcs", "user")
 	if err != nil {
 		panic(err)
 	}
 
-	// 重置数据库
-	db.DropTableIfExists(&User{}, &File{}, &Preference{}, &Site{})
-	db.AutoMigrate(&User{}, &File{}, &Preference{}, &Site{})
-
-	user := User{
-		Name:     "admin",
-		Password: "admin",
-		Role:     "admin",
-		Preference: Preference{
-			Sites: []Site{
-				Site{Name: "bj"},
-			},
-		},
-		Files: []File{
-			File{
-				Name:         "testfile",
-				Size:         1024,
-				LastModified: time.Now().Unix(),
-				Sites: []Site{
-					Site{Name: "bj"},
-				},
-			},
-		},
-	}
-	db.Save(&user)
-
 	tokenMap = make(map[string]string)
-	clientMap = make(map[string]*StorageClient)
+	clientMap = make(map[string]*client.StorageClient)
 
-	var clients []StorageClient
+	var clients []client.StorageClient
 	data, err := ioutil.ReadFile(*config)
 	if err != nil {
 		panic(err)
@@ -76,17 +54,15 @@ func init() {
 }
 
 func main() {
-	defer db.Close()
-
 	r := gin.Default()
 	r.POST("/api/user/login", login)
 
 	r.Use(TokenAuthMiddleware())
 
 	r.GET("/api/user/info", info)
-	r.GET("/api/user/site", site)
+	r.GET("/api/user/strategy", getStrategy)
+	r.POST("/api/user/strategy", setStrategy)
 	r.POST("/api/user/logout", logout)
-	r.POST("/api/user/preference", preference)
 
 	r.GET("/api/storage/list", list)
 	r.GET("/api/storage/download", download)
