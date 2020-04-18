@@ -6,6 +6,11 @@ import (
 	"io/ioutil"
 
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
+)
+
+const (
+	version = "v0.1"
 )
 
 var (
@@ -19,6 +24,8 @@ var (
 )
 
 func main() {
+	log.Infoln("Starting storage", version)
+
 	config, err := ioutil.ReadFile(*configFile)
 	if err != nil {
 		panic(err)

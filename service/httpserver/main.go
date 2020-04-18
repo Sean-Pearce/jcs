@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	version = "0.1"
+	version = "v0.1"
 )
 
 var (
@@ -32,7 +32,6 @@ var (
 func init() {
 	flag.Parse()
 
-	log.Infoln("Starting httpserver v", version)
 	if *debug {
 		log.SetLevel(log.DebugLevel)
 	}
@@ -65,6 +64,8 @@ func init() {
 }
 
 func main() {
+	log.Infoln("Starting httpserver", version)
+
 	r := gin.Default()
 	r.POST("/api/user/login", login)
 

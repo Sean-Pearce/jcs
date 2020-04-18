@@ -5,15 +5,22 @@ import (
 	"net"
 
 	pb "github.com/Sean-Pearce/jcs/service/scheduler/proto"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
 
+const (
+	version = "v0.1"
+)
+
 var (
-	port = flag.String("port", ":5000", "grpc service port number")
+	port = flag.String("port", ":5001", "grpc service port number")
 )
 
 func main() {
 	flag.Parse()
+
+	log.Infoln("Starting scheduler", version)
 
 	s := newScheduler("")
 	gs := grpc.NewServer()
