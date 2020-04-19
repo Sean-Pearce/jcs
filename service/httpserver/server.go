@@ -25,6 +25,9 @@ const (
 func TokenAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.GetHeader("X-Token")
+		if token == "" {
+			token = c.Query("t")
+		}
 		if _, ok := tokenMap[token]; !ok {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"code":    CodeInvalidToken,
@@ -239,7 +242,7 @@ func upload(c *gin.Context) {
 }
 
 func download(c *gin.Context) {
-	username := getUsernameByToken(c.GetHeader("X-Token"))
+	username := getUsernameByToken(c.Query("t"))
 	filename := c.Query("filename")
 
 	file, err := d.GetFileInfo(username, filename)

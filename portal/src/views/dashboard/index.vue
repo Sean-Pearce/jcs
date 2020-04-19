@@ -56,7 +56,7 @@
 </template>
 
 <script>
-import { getFiles, upload, download } from '@/api/storage'
+import { getFiles, upload, genDownloadLink } from '@/api/storage'
 
 export default {
   data() {
@@ -84,16 +84,13 @@ export default {
       })
     },
     handleDownload(filename) {
-      download(filename).then(response => {
-        var url = URL.createObjectURL(response)
-        var link = document.createElement('a')
-        link.href = url
-        link.setAttribute('download', filename)
-        document.body.appendChild(link)
-        link.click()
-        URL.revokeObjectURL(link)
-        document.body.removeChild(link)
-      })
+      var url = genDownloadLink(filename)
+      var link = document.createElement('a')
+      link.href = url
+      document.body.appendChild(link)
+      link.click()
+      URL.revokeObjectURL(link)
+      document.body.removeChild(link)
     },
     handleDelete(filename) {
       console.log(filename)

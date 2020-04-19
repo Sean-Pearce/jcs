@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import { getToken } from '@/utils/auth'
 
 export function getFiles(params) {
   return request({
@@ -31,4 +32,9 @@ export function download(params) {
     },
     responseType: 'blob'
   })
+}
+
+export function genDownloadLink(filename) {
+  // TODO: insecure, should use temporary token
+  return process.env.VUE_APP_BASE_API + '/storage/download?filename=' + filename + '&t=' + getToken()
 }
