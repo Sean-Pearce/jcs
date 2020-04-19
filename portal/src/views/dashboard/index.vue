@@ -87,6 +87,7 @@ export default {
       var url = genDownloadLink(filename)
       var link = document.createElement('a')
       link.href = url
+      link.setAttribute('download', filename)
       document.body.appendChild(link)
       link.click()
       URL.revokeObjectURL(link)
