@@ -14,14 +14,17 @@
       <el-table-column
         label="文件名"
         prop="filename"
+        min-width="200"
       />
       <el-table-column
         label="大小"
         prop="size"
+        :formatter="sizeFormatter"
       />
       <el-table-column
         label="修改时间"
         prop="last_modified"
+        :formatter="dateFormatter"
       />
       <el-table-column class-name="status-col" label="位置">
         <template slot-scope="scope">
@@ -95,6 +98,26 @@ export default {
     },
     handleDelete(filename) {
       console.log(filename)
+    },
+    sizeFormatter(row, column, bytes, index) {
+      const si = false
+      var thresh = si ? 1000 : 1024
+      if (Math.abs(bytes) < thresh) {
+        return bytes + ' B'
+      }
+      var units = !si
+        ? ['KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+        : ['KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
+      var u = -1
+      do {
+        bytes /= thresh
+        ++u
+      } while (Math.abs(bytes) >= thresh && u < units.length - 1)
+      return bytes.toFixed(1) + ' ' + units[u]
+    },
+    dateFormatter(row, column, timestamp, index) {
+      var date = new Date(timestamp * 1000)
+      return date.toLocaleString('zh-CN')
     }
   }
 }
