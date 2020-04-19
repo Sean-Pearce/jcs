@@ -59,7 +59,7 @@
 </template>
 
 <script>
-import { getFiles, upload, genDownloadLink } from '@/api/storage'
+import { getFiles, upload, deleteFile, genDownloadLink } from '@/api/storage'
 
 export default {
   data() {
@@ -97,7 +97,10 @@ export default {
       document.body.removeChild(link)
     },
     handleDelete(filename) {
-      console.log(filename)
+      var self = this
+      deleteFile(filename).then(() => {
+        self.fetchData()
+      })
     },
     sizeFormatter(row, column, bytes, index) {
       const si = false

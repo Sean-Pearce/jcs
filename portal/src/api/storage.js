@@ -37,6 +37,13 @@ export function download(params) {
   })
 }
 
+export function deleteFile(filename) {
+  return request({
+    url: '/storage/delete/' + filename,
+    method: 'delete'
+  })
+}
+
 export function genDownloadLink(filename) {
   // TODO: insecure, should use temporary token
   return process.env.VUE_APP_BASE_API + '/storage/download?filename=' + filename + '&t=' + getToken()

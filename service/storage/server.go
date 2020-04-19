@@ -130,6 +130,30 @@ func download(c *gin.Context) {
 	})
 }
 
+func deleteFile(c *gin.Context) {
+	user, _, _ := c.Request.BasicAuth()
+	filename := c.Query("filename")
+
+	if !validateFilename(filename) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid filename",
+		})
+		return
+	}
+	objName := path.Join(user, filename)
+
+	err := minioClient.RemoveObject(bucketName, objName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "remove object error",
+		})
+		log.WithError(err).Errorf("remove object %v error", objName)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{})
+}
+
 func validateFilename(filename string) bool {
 	// TODO: use regexp to validate
 	return filename != ""

@@ -11,6 +11,7 @@ const (
 	pingPath     = "/ping"
 	uploadPath   = "/upload"
 	downloadPath = "/download"
+	deletePath   = "/delete"
 )
 
 // StorageClient is a client of storage service.
@@ -48,6 +49,7 @@ func (c *StorageClient) Upload(file io.Reader, filename string) (*http.Response,
 			"filename": filename,
 		}).
 		SetBasicAuth(c.Username, c.Password).
+		SetDoNotParseResponse(true).
 		Post(c.Endpoint + uploadPath)
 	if err != nil {
 		return nil, err
@@ -65,6 +67,22 @@ func (c *StorageClient) Download(filename string) (*http.Response, error) {
 		SetBasicAuth(c.Username, c.Password).
 		SetDoNotParseResponse(true).
 		Get(c.Endpoint + downloadPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.RawResponse, nil
+}
+
+// Delete deletes given filename from storage server.
+func (c *StorageClient) Delete(filename string) (*http.Response, error) {
+	client := resty.New()
+
+	resp, err := client.R().
+		SetQueryParam("filename", filename).
+		SetBasicAuth(c.Username, c.Password).
+		SetDoNotParseResponse(true).
+		Delete(c.Endpoint + deletePath)
 	if err != nil {
 		return nil, err
 	}

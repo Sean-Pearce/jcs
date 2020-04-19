@@ -241,6 +241,48 @@ func upload(c *gin.Context) {
 	})
 }
 
+func deleteFile(c *gin.Context) {
+	username := getUsernameByToken(c.GetHeader("X-Token"))
+	filename := c.Param("filename")
+
+	file, err := d.GetFileInfo(username, filename)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    CodeFileNotExists,
+			"message": "The given file not exists.",
+		})
+		return
+	}
+
+	for _, site := range file.Sites {
+		resp, err := clientMap[site].Delete(path.Join(username, filename))
+		if err != nil || resp.StatusCode != http.StatusOK {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    CodeInternalError,
+				"message": "Something is wrong.",
+			})
+			logrus.WithError(err).Errorf("delete %v in %v failed", filename, file.Sites[0], resp.StatusCode)
+			return
+		}
+		resp.Body.Close()
+	}
+
+	err = d.RemoveFile(username, filename)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":    CodeInternalError,
+			"message": "Something is wrong.",
+		})
+		logrus.WithError(err).Errorf("Remove file %v from database failed", filename)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code":    CodeOK,
+		"message": "Delete file successfully",
+	})
+}
+
 func download(c *gin.Context) {
 	username := getUsernameByToken(c.Query("t"))
 	filename := c.Query("filename")

@@ -81,6 +81,7 @@ func main() {
 	r.GET("/api/storage/list", list)
 	r.GET("/api/storage/download", download)
 	r.POST("/api/storage/upload", upload)
+	r.DELETE("api/storage/delete/:filename", deleteFile)
 
 	r.Run(*port)
 }

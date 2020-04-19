@@ -42,6 +42,7 @@ func main() {
 	authorized.GET("/ping", ping)
 	authorized.POST("/upload", upload)
 	authorized.GET("/download", download)
+	authorized.DELETE("/delete", deleteFile)
 
 	r.Run(*port)
 }
