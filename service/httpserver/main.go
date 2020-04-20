@@ -71,7 +71,7 @@ func main() {
 	r := gin.Default()
 	r.POST("/api/user/login", login)
 
-	r.Use(TokenAuthMiddleware())
+	r.Use(tokenAuthMiddleware())
 
 	r.GET("/api/user/info", info)
 	r.GET("/api/user/strategy", getStrategy)

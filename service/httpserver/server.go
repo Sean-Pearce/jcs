@@ -14,15 +14,18 @@ import (
 )
 
 const (
-	CodeOK            = 9200
-	CodeUploadError   = 9400
-	CodeAuthFail      = 9401
-	CodeInvalidToken  = 9402
-	CodeFileNotExists = 9404
-	CodeInternalError = 9500
+	// OK
+	codeOK = 9200
+	// BadRequest
+	codeUploadError   = 9400
+	codeAuthFail      = 9401
+	codeInvalidToken  = 9402
+	codeFileNotExists = 9404
+	// InternalError
+	codeInternalError = 9500
 )
 
-func TokenAuthMiddleware() gin.HandlerFunc {
+func tokenAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.GetHeader("X-Token")
 		if token == "" {
@@ -30,7 +33,7 @@ func TokenAuthMiddleware() gin.HandlerFunc {
 		}
 		if _, ok := tokenMap[token]; !ok {
 			c.JSON(http.StatusUnauthorized, gin.H{
-				"code":    CodeInvalidToken,
+				"code":    codeInvalidToken,
 				"message": "Invalid token",
 			})
 			c.Abort()
@@ -47,7 +50,7 @@ func login(c *gin.Context) {
 	user, err := d.GetUserInfo(username)
 	if err != nil || user.Password != password {
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"code":    CodeAuthFail,
+			"code":    codeAuthFail,
 			"message": "Account and password are incorrect.",
 		})
 		return
@@ -57,7 +60,7 @@ func login(c *gin.Context) {
 	tokenMap[token] = username
 
 	c.JSON(http.StatusOK, gin.H{
-		"code": CodeOK,
+		"code": codeOK,
 		"data": gin.H{
 			"token": token,
 		},
@@ -69,7 +72,7 @@ func logout(c *gin.Context) {
 	delete(tokenMap, token)
 
 	c.JSON(http.StatusOK, gin.H{
-		"code":    CodeOK,
+		"code":    codeOK,
 		"message": "See you ~",
 	})
 }
@@ -80,14 +83,14 @@ func info(c *gin.Context) {
 	user, err := d.GetUserInfo(username)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"code":    CodeInvalidToken,
+			"code":    codeInvalidToken,
 			"message": "User not exist.",
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"code": CodeOK,
+		"code": codeOK,
 		"data": gin.H{
 			"role":   user.Role,
 			"avatar": "https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif",
@@ -101,7 +104,7 @@ func list(c *gin.Context) {
 	files, err := d.GetUserFiles(username)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    CodeInternalError,
+			"code":    codeInternalError,
 			"message": "Something is wrong.",
 		})
 		log.WithError(err).Errorf("get %v's files", username)
@@ -109,7 +112,7 @@ func list(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"code": CodeOK,
+		"code": codeOK,
 		"data": gin.H{
 			"total": len(*files),
 			"items": files,
@@ -123,7 +126,7 @@ func getStrategy(c *gin.Context) {
 	strategy, err := d.GetUserStrategy(username)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    CodeInternalError,
+			"code":    codeInternalError,
 			"message": "Something is wrong.",
 		})
 		log.WithError(err).Errorf("get %v's strategy", username)
@@ -131,7 +134,7 @@ func getStrategy(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"code": CodeOK,
+		"code": codeOK,
 		"data": gin.H{
 			"sites":    clientList,
 			"strategy": strategy,
@@ -149,7 +152,7 @@ func setStrategy(c *gin.Context) {
 	err := d.SetUserStrategy(username, strategy)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    CodeInternalError,
+			"code":    codeInternalError,
 			"message": "Something is wrong.",
 		})
 		log.WithError(err).Errorf("set %v's strategy", username)
@@ -157,7 +160,7 @@ func setStrategy(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"code":    CodeOK,
+		"code":    codeOK,
 		"message": "Set strategy successfully",
 	})
 }
@@ -169,18 +172,28 @@ func upload(c *gin.Context) {
 	file, err := c.FormFile("file")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    CodeUploadError,
+			"code":    codeUploadError,
 			"message": "Form key must be 'file'",
 		})
 		return
 	}
+
+	_, err = d.GetFileInfo(username, file.Filename)
+	if err == nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code":    codeUploadError,
+			"message": "File already exists",
+		})
+		return
+	}
+
 	// user1/testfile
 	filename := path.Join(username, file.Filename)
 
 	body, err := file.Open()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    CodeUploadError,
+			"code":    codeUploadError,
 			"message": "Cannot open file",
 		})
 		return
@@ -189,21 +202,23 @@ func upload(c *gin.Context) {
 	strategy, err := d.GetUserStrategy(username)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    CodeInternalError,
+			"code":    codeInternalError,
 			"message": "Something is wrong.",
 		})
 		log.WithError(err).Errorf("get %v's strategy", username)
 		return
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
 	resp, err := s.Schedule(
 		ctx,
 		&pb.ScheduleRequest{Sites: strategy.Sites},
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    CodeInternalError,
+			"code":    codeInternalError,
 			"message": "Something is wrong.",
 		})
 		log.WithError(err).Errorf("schedule for %v, sites are %v", username, strategy.Sites)
@@ -229,7 +244,7 @@ func upload(c *gin.Context) {
 	err = d.AddFile(username, item)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    CodeInternalError,
+			"code":    codeInternalError,
 			"message": "Something is wrong.",
 		})
 		log.WithError(err).Errorf("add file %v for %v", filename, username)
@@ -237,7 +252,7 @@ func upload(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"code": CodeOK,
+		"code": codeOK,
 	})
 }
 
@@ -248,7 +263,7 @@ func deleteFile(c *gin.Context) {
 	file, err := d.GetFileInfo(username, filename)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    CodeFileNotExists,
+			"code":    codeFileNotExists,
 			"message": "The given file not exists.",
 		})
 		return
@@ -258,7 +273,7 @@ func deleteFile(c *gin.Context) {
 		resp, err := clientMap[site].Delete(path.Join(username, filename))
 		if err != nil || resp.StatusCode != http.StatusOK {
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"code":    CodeInternalError,
+				"code":    codeInternalError,
 				"message": "Something is wrong.",
 			})
 			logrus.WithError(err).Errorf("delete %v in %v failed", filename, file.Sites[0], resp.StatusCode)
@@ -270,7 +285,7 @@ func deleteFile(c *gin.Context) {
 	err = d.RemoveFile(username, filename)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    CodeInternalError,
+			"code":    codeInternalError,
 			"message": "Something is wrong.",
 		})
 		logrus.WithError(err).Errorf("Remove file %v from database failed", filename)
@@ -278,7 +293,7 @@ func deleteFile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"code":    CodeOK,
+		"code":    codeOK,
 		"message": "Delete file successfully",
 	})
 }
@@ -290,7 +305,7 @@ func download(c *gin.Context) {
 	file, err := d.GetFileInfo(username, filename)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    CodeFileNotExists,
+			"code":    codeFileNotExists,
 			"message": "The given file not exists.",
 		})
 		return
@@ -300,7 +315,7 @@ func download(c *gin.Context) {
 	resp, err := clientMap[file.Sites[0]].Download(path.Join(username, filename))
 	if err != nil || resp.StatusCode != http.StatusOK {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":    CodeInternalError,
+			"code":    codeInternalError,
 			"message": "Something is wrong.",
 		})
 		logrus.WithError(err).Errorf("download %v from %v failed", filename, file.Sites[0], resp.StatusCode)
