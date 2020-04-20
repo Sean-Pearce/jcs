@@ -66,7 +66,7 @@ export const constantRoutes = [
     children: [
       {
         path: '',
-        name: 'Form',
+        name: 'Dashboard',
         component: () => import('@/views/distribution/index'),
         meta: { title: '文件分布', icon: 'map' }
       }
@@ -79,7 +79,7 @@ export const constantRoutes = [
     children: [
       {
         path: '',
-        name: 'Form',
+        name: 'Dashboard',
         component: () => import('@/views/preference/index'),
         meta: { title: '存储方案', icon: 'setting' }
       }
