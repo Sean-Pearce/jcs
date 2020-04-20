@@ -76,7 +76,7 @@ export default {
     fetchData() {
       this.listLoading = true
       getFiles().then(response => {
-        this.files = response.data.items
+        this.files = response.data.items.reverse()
         this.listLoading = false
       })
     },
