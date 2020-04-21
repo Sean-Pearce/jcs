@@ -62,6 +62,7 @@ func TestAll(t *testing.T) {
 	testAddFile(t, user.Username, files[0])
 	testAddFile(t, user.Username, files[1])
 	testGetFileInfo(t, user.Username, files[0].Filename, files[0])
+	testGetFileInfo(t, user.Username, files[1].Filename, files[1])
 	testGetUserFiles(t, user.Username, files)
 	testRemoveFile(t, user.Username, files[0].Filename)
 	testGetUserFiles(t, user.Username, files[1:])

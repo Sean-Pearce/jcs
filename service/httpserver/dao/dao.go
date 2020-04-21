@@ -213,7 +213,15 @@ func (d *Dao) GetFileInfo(username, filename string) (*File, error) {
 		return nil, err
 	}
 
-	return &u.Files[0], nil
+	// TODO: too slow
+	var f File
+	for _, f = range u.Files {
+		if f.Filename == filename {
+			break
+		}
+	}
+
+	return &f, nil
 }
 
 // RemoveFile removes the given file from database.
