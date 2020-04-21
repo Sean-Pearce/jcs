@@ -41,13 +41,11 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
 FROM scratch as httpserver
 WORKDIR /httpserver
 COPY --from=build-stage /jcs/httpserver /httpserver/
-COPY --from=build-stage /jcs/service/httpserver/accounts.json /httpserver/
 ENTRYPOINT [ "./httpserver" ]
 
 FROM scratch as storage
 WORKDIR /storage
 COPY --from=build-stage /jcs/storage /storage/
-COPY --from=build-stage /jcs/service/storage/storage.json /storage/
 ENTRYPOINT [ "./storage" ]
 
 FROM scratch as scheduler

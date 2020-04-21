@@ -8,4 +8,3 @@ RUN npm run build:prod
 FROM nginx:1.17.10-alpine as production-stage
 RUN mkdir /portal
 COPY --from=build-stage /portal/dist /portal
-COPY nginx.conf /etc/nginx/nginx.conf

@@ -21,7 +21,7 @@ var (
 	mongoURL      = flag.String("mongo", "mongodb://localhost:27017", "mongodb server address")
 	schedulerAddr = flag.String("sched", "localhost:5001", "scheduler address")
 	port          = flag.String("port", ":5000", "http server port")
-	config        = flag.String("accounts", "accounts.json", "accounts for storage backends")
+	config        = flag.String("config", "httpserver.json", "httpserver config file")
 	debug         = flag.Bool("debug", false, "debug mode")
 	testMode      = flag.Bool("test", false, "enable test mode")
 	tokenMap      map[string]string

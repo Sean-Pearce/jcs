@@ -15,7 +15,7 @@ const (
 
 var (
 	configFile = flag.String("config", "storage.json", "config file")
-	port       = flag.String("port", ":5001", "port number")
+	port       = flag.String("port", ":5002", "port number")
 	endpoint   = flag.String("endpoint", "127.0.0.1:9000", "minio endpoint")
 	accessKey  = flag.String("ak", "", "access key")
 	secretKey  = flag.String("sk", "", "secret key")

@@ -5,6 +5,8 @@ services:
         depends_on: 
             - httpserver
         image: jcs-portal
+        volumes: 
+            - ./configs/portal.conf:/etc/nginx/nginx.conf:ro
         ports:
         - "8080:80"
 
@@ -16,25 +18,32 @@ services:
             - storage-gz
             - scheduler
         image: jcs-httpserver
-        command: -mongo mongodb://mongo:27017 -sched scheduler:5001
+        volumes: 
+            - ./configs/httpserver.json:/httpserver/httpserver.json:ro
+        command: -mongo=mongodb://mongo:27017 -sched=scheduler:5001 -test
 
     storage-bj:
         depends_on: 
             - minio-bj
         image: jcs-storage
-        command: -endpoint minio-bj:9000 -ak=minioadmin -sk=minioadmin
+        volumes: 
+            - ./configs/storage.json:/storage/storage.json:ro
+        command: -endpoint=minio-bj:9000 -ak=minioadmin -sk=minioadmin
 
     storage-sh:
         depends_on: 
             - minio-sh
         image: jcs-storage
-        command: -endpoint minio-sh:9000 -ak=minioadmin -sk=minioadmin
-    
+        volumes: 
+            - ./configs/storage.json:/storage/storage.json:ro
+        command: -endpoint=minio-sh:9000 -ak=minioadmin -sk=minioadmin
     storage-gz:
         depends_on: 
             - minio-gz
         image: jcs-storage
-        command: -endpoint minio-gz:9000 -ak=minioadmin -sk=minioadmin
+        volumes: 
+            - ./configs/storage.json:/storage/storage.json:ro
+        command: -endpoint=minio-gz:9000 -ak=minioadmin -sk=minioadmin
     
     scheduler:
         image: jcs-scheduler
