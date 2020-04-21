@@ -235,6 +235,14 @@ func upload(c *gin.Context) {
 		sites = append(sites, site)
 	}
 
+	if len(sites) == 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"code":    codeUploadError,
+			"message": "Upload to storage backends failed",
+		})
+		return
+	}
+
 	item := dao.File{
 		Filename:     file.Filename,
 		Size:         file.Size,
