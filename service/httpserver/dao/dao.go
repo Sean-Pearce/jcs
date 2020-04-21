@@ -2,6 +2,7 @@ package dao
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -200,28 +201,23 @@ func (d *Dao) GetFileInfo(username, filename string) (*File, error) {
 	var u User
 	err := col.FindOne(
 		context.TODO(),
-		bson.D{
-			{Key: "username", Value: username},
-			{Key: "files.filename", Value: filename},
+		bson.M{
+			"username": username,
 		},
 		&options.FindOneOptions{
 			Projection: bson.M{
-				"files": 1,
+				"files": bson.M{
+					"$elemMatch": bson.M{
+						"filename": filename,
+					},
+				},
 			},
 		}).Decode(&u)
-	if err != nil {
-		return nil, err
+	if err != nil || len(u.Files) == 0 {
+		return nil, errors.New("file not found")
 	}
 
-	// TODO: too slow
-	var f File
-	for _, f = range u.Files {
-		if f.Filename == filename {
-			break
-		}
-	}
-
-	return &f, nil
+	return &u.Files[0], nil
 }
 
 // RemoveFile removes the given file from database.

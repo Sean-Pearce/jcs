@@ -64,9 +64,13 @@ func TestAll(t *testing.T) {
 	testGetFileInfo(t, user.Username, files[0].Filename, files[0])
 	testGetFileInfo(t, user.Username, files[1].Filename, files[1])
 	testGetUserFiles(t, user.Username, files)
+
 	testRemoveFile(t, user.Username, files[0].Filename)
+	testFileNotExists(t, user.Username, files[0].Filename)
 	testGetUserFiles(t, user.Username, files[1:])
+
 	testRemoveFile(t, user.Username, files[1].Filename)
+	testFileNotExists(t, user.Username, files[1].Filename)
 	testGetUserFiles(t, user.Username, files[2:])
 }
 
@@ -95,6 +99,11 @@ func testGetFileInfo(t *testing.T, username, filename string, want File) {
 	file, err := d.GetFileInfo(username, filename)
 	require.Nil(t, err)
 	require.Equal(t, want, *file)
+}
+
+func testFileNotExists(t *testing.T, username, filename string) {
+	_, err := d.GetFileInfo(username, filename)
+	require.NotNil(t, err)
 }
 
 func testGetUserFiles(t *testing.T, username string, want []File) {
