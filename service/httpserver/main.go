@@ -23,6 +23,7 @@ var (
 	port          = flag.String("port", ":5000", "http server port")
 	config        = flag.String("accounts", "accounts.json", "accounts for storage backends")
 	debug         = flag.Bool("debug", false, "debug mode")
+	testMode      = flag.Bool("test", false, "enable test mode")
 	tokenMap      map[string]string
 	clientMap     map[string]*client.StorageClient
 	clientList    []string
@@ -41,6 +42,17 @@ func init() {
 	d, err = dao.NewDao(*mongoURL, "jcs", "user")
 	if err != nil {
 		panic(err)
+	}
+
+	if *testMode {
+		err = d.CreateNewUser(dao.User{
+			Username: "admin",
+			Password: "admin",
+			Role:     "admin",
+		})
+		if err != nil {
+			log.WithError(err).Warnln("create test user failed")
+		}
 	}
 
 	tokenMap = make(map[string]string)
