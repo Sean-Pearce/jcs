@@ -18,22 +18,12 @@ export function upload(item) {
     headers: {
       'Content-Type': 'multipart/form-data'
     },
+    timeout: 0,
     data: form_data,
     onUploadProgress: progressEvent => {
       const complete = (progressEvent.loaded / progressEvent.total * 100 | 0)
       item.onProgress({ percent: complete })
     }
-  })
-}
-
-export function download(params) {
-  return request({
-    url: '/storage/download',
-    method: 'get',
-    params: {
-      filename: params
-    },
-    responseType: 'blob'
   })
 }
 
