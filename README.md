@@ -39,3 +39,10 @@ docker-compose down
 
 ## 开发指南
 
+注意：`master` 分支开启了分支保护，请不要直接在 `master` 分支提交代码。
+
+1. 创建新分支
+2. 提交 `pull request`
+3. 向新分支提交代码，并在 `pull request` 页面追踪进度
+4. 功能实现完成，且测试通过后，请其他成员进行 code review
+5. code review 通过后，merge 进目标分支
