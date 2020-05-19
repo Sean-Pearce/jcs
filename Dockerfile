@@ -3,13 +3,13 @@ ARG all_proxy
 WORKDIR /jcs
 # install tools
 RUN echo \
-    deb https://mirrors.tuna.tsinghua.edu.cn/debian/ buster main contrib non-free\
-    deb https://mirrors.tuna.tsinghua.edu.cn/debian/ buster-updates main contrib non-free\
-    deb https://mirrors.tuna.tsinghua.edu.cn/debian/ buster-backports main contrib non-free\
-    deb https://mirrors.tuna.tsinghua.edu.cn/debian-security buster/updates main contrib non-free\
+    "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ buster main contrib non-free\n" \
+    "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ buster-updates main contrib non-free\n" \
+    "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ buster-backports main contrib non-free\n" \
+    "deb https://mirrors.tuna.tsinghua.edu.cn/debian-security buster/updates main contrib non-free\n" \
     > /etc/apt/sources.list
 RUN cat /etc/apt/sources.list
-RUN apt update && apt install -y unzip
+RUN apt-get update && apt-get install -y unzip
 # install protoc toolchain
 RUN PB_REL="https://github.com/protocolbuffers/protobuf/releases" \
     && curl -LO $PB_REL/download/v3.11.4/protoc-3.11.4-linux-x86_64.zip \
