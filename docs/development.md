@@ -2,7 +2,7 @@
 
 ## 系统架构（WIP）
 
-![系统架构](https://i.loli.net/2020/05/13/WIL2owSJi7DTXhl.png)
+![系统架构](img/archetecture-new.drawio.svg)
 
 `web-ui` 是存储系统对外提供的网页端访问方式，对应项目中的 `portal` 模块。`portal` 模块基于 [vue-admin-template](https://github.com/PanJiaChen/vue-admin-template) 开发，详细说明文档在 [这里](https://panjiachen.gitee.io/vue-element-admin-site/zh/guide/)。
 
@@ -18,7 +18,7 @@
 
 上传文件：
 
-![组件交互-s3 write.jpg](https://i.loli.net/2020/05/15/NcCsTefhPFWlwMa.jpg)
+![组件交互-s3 write.jpg](img/s3-upload.drawio.svg)
 
 1. `s3 client` 向 `storage` 发起上传请求
 2. `storage` 向 `mongoDB` 查询用户信息和 bucket 信息，然后对请求签名进行鉴权
@@ -29,7 +29,7 @@
 
 上传文件：
 
-![组件交互-web upload.jpg](https://i.loli.net/2020/05/15/LG9OwToHk6jUcK1.jpg)
+![组件交互-web upload.jpg](img/web-upload.drawio.svg)
 
 1. `web ui` 向 `httpserver` 发起上传请求
 2. `httpserver` 对请求进行鉴权（可能不需要访问数据库）
