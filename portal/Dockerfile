@@ -1,7 +1,7 @@
 FROM node:alpine3.11 as build-stage
 WORKDIR /portal
 COPY package*.json ./
-RUN npm install --registry=https://registry.npm.taobao.org
+RUN SASS_BINARY_SITE=https://npm.taobao.org/mirrors/node-sass/ npm install --registry=https://registry.npm.taobao.org
 COPY ./ .
 RUN npm run build:prod
 
