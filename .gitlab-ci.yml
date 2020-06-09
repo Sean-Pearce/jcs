@@ -1,0 +1,10 @@
+before_script:
+  - docker info
+
+build_image:
+  stage: build
+  script:
+    - docker build -t jcs-httpserver --target=httpserver .
+    - docker build -t jcs-storage --target=storage .
+    - docker build -t jcs-scheduler --target=scheduler .
+    - cd portal && docker build -t jcs-portal .
