@@ -2,6 +2,8 @@
 
 一个用 Golang 实现的云际存储原型系统，提供 web ui 和 s3 api (WIP) 两种访问方式。
 
+[![pipeline status](http://gitlab.act.buaa.edu.cn/chenkj/jcs/badges/feat/ci-cd/pipeline.svg)](http://gitlab.act.buaa.edu.cn/chenkj/jcs/-/commits/feat/ci-cd)
+
 ## 部署
 
 ### 构建镜像
