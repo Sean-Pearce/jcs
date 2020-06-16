@@ -1,5 +1,6 @@
 stages:    
   - build    
+  - test
 
 before_script:
   - docker info
@@ -11,3 +12,8 @@ build_image:
     - docker build -t jcs-storage --target=storage .
     - docker build -t jcs-scheduler --target=scheduler .
     - cd portal && docker build -t jcs-portal .
+
+system_testing:
+  stage: test
+  script:
+    - ./test.sh
