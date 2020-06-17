@@ -21,6 +21,8 @@ services:
         volumes: 
             - ./configs/httpserver.json:/httpserver/httpserver.json:ro
         command: -mongo=mongodb://mongo:27017 -sched=scheduler:5001 -test
+        ports:
+        - "5000:5000"
 
     storage-bj:
         depends_on: 
