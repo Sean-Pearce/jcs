@@ -29,6 +29,7 @@ var (
 	clientList    []string
 	d             *dao.Dao
 	s             pb.SchedulerClient
+	promAddr      = ":10090"
 )
 
 func init() {
@@ -39,13 +40,13 @@ func init() {
 	}
 
 	var err error
-	d, err = dao.NewDao(*mongoURL, "jcs", "user")
+	d, err = dao.NewDao(*mongoURL, "jcs", "user", "bucket", "cloud")
 	if err != nil {
 		panic(err)
 	}
 
 	if *testMode {
-		err = d.CreateNewUser(dao.User{
+		err = d.CreateUser(dao.User{
 			Username: "admin",
 			Password: "admin",
 			Role:     "admin",
@@ -81,19 +82,19 @@ func main() {
 	log.Infoln("Starting httpserver", version)
 
 	r := gin.Default()
+
 	r.POST("/api/user/login", login)
+	r.POST("/api/user/signup", signup)
 
 	r.Use(tokenAuthMiddleware())
 
-	r.GET("/api/user/info", info)
-	r.GET("/api/user/strategy", getStrategy)
-	r.POST("/api/user/strategy", setStrategy)
-	r.POST("/api/user/logout", logout)
+	r.GET("/api/cloudinfo", allCloudInfo)
 
-	r.GET("/api/storage/list", list)
-	r.GET("/api/storage/download", download)
-	r.POST("/api/storage/upload", upload)
-	r.DELETE("api/storage/delete/:filename", deleteFile)
+	r.POST("/api/createbucket", createBucket)
+
+	r.GET("/api/user/userinfo", userInfo)
+	r.POST("/api/user/logout", logout)
+	r.POST("/api/user/passwd", passwd)
 
 	r.Run(*port)
 }

@@ -2,7 +2,6 @@ package dao
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -13,35 +12,48 @@ import (
 
 // Dao encapsulates database operations.
 type Dao struct {
-	client     *mongo.Client
-	database   string
-	collection string
+	client           *mongo.Client
+	database         string
+	userCollection   string
+	bucketCollection string
+	cloudCollection  string
 }
 
 type User struct {
-	Username string
-	Password string
-	Role     string
-	Strategy Strategy
-	Files    []File
+	Username  string
+	Password  string
+	Role      string
+	AccessKey string
+	SecretKey string
 }
 
-type File struct {
-	Filename     string   `json:"filename"`
-	Size         int64    `json:"size"`
-	LastModified int64    `json:"last_modified"`
-	Sites        []string `json:"sites"`
+type Bucket struct {
+	Name  string
+	Owner string
+
+	// storage strategy
+	Mode      string // "ec" | "replica"
+	Locations []string
+	Replica   int
+	n         int
+	k         int
 }
 
-type Strategy struct {
-	Sites []string `json:"sites"`
+type Cloud struct {
+	Name    string
+	Address string
+	Status  string // "Online" | "Offline"
+	Price   float64
+	Latency float64
 }
 
 // NewDao constructs a data access object (Dao).
-func NewDao(mongoURI, database, collection string) (*Dao, error) {
+func NewDao(mongoURI, database, userCollection, bucketCollection, cloudCollection string) (*Dao, error) {
 	dao := &Dao{
-		database:   database,
-		collection: collection,
+		database:         database,
+		userCollection:   userCollection,
+		bucketCollection: bucketCollection,
+		cloudCollection:  cloudCollection,
 	}
 
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongoURI))
@@ -56,7 +68,15 @@ func NewDao(mongoURI, database, collection string) (*Dao, error) {
 	}
 
 	dao.client = client
-	err = dao.ensureIndex("username", true)
+	err = dao.ensureIndex("username", true, dao.userCollection)
+	if err != nil {
+		return nil, err
+	}
+	err = dao.ensureIndex("name", true, dao.bucketCollection)
+	if err != nil {
+		return nil, err
+	}
+	err = dao.ensureIndex("name", true, dao.cloudCollection)
 	if err != nil {
 		return nil, err
 	}
@@ -64,8 +84,8 @@ func NewDao(mongoURI, database, collection string) (*Dao, error) {
 	return dao, nil
 }
 
-func (d *Dao) ensureIndex(index string, unique bool) error {
-	col := d.client.Database(d.database).Collection(d.collection)
+func (d *Dao) ensureIndex(index string, unique bool, collection string) error {
+	col := d.client.Database(d.database).Collection(collection)
 	idx := mongo.IndexModel{
 		Keys: bson.M{
 			index: 1,
@@ -83,12 +103,9 @@ func (d *Dao) ensureIndex(index string, unique bool) error {
 	return nil
 }
 
-// CreateNewUser creates a new user.
-func (d *Dao) CreateNewUser(user User) error {
-	col := d.client.Database(d.database).Collection(d.collection)
-
-	user.Strategy = Strategy{Sites: []string{}}
-	user.Files = []File{}
+// CreateUser creates a new user.
+func (d *Dao) CreateUser(user User) error {
+	col := d.client.Database(d.database).Collection(d.userCollection)
 
 	_, err := col.InsertOne(context.TODO(), user)
 	if err != nil {
@@ -98,17 +115,28 @@ func (d *Dao) CreateNewUser(user User) error {
 	return nil
 }
 
-// GetUserInfo returns the info of given user.
-func (d *Dao) GetUserInfo(username string) (*User, error) {
-	col := d.client.Database(d.database).Collection(d.collection)
+// GetUserBuckets returns user buckets.
+func (d *Dao) GetUserBuckets(username string) ([]*Bucket, error) {
+	col := d.client.Database(d.database).Collection(d.bucketCollection)
+
+	var res []*Bucket
+	cursor, err := col.Find(context.TODO(), bson.M{"owner": username})
+	if err != nil {
+		return nil, err
+	}
+	if err := cursor.All(context.TODO(), &res); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+// GetUser returns the info of given user.
+func (d *Dao) GetUser(username string) (*User, error) {
+	col := d.client.Database(d.database).Collection(d.userCollection)
 
 	var u User
-	err := col.FindOne(context.TODO(), bson.M{"username": username}, &options.FindOneOptions{
-		Projection: bson.M{
-			"strategy": 0,
-			"files":    0,
-		},
-	}).Decode(&u)
+	err := col.FindOne(context.TODO(), bson.M{"username": username}).Decode(&u)
 	if err != nil {
 		return nil, err
 	}
@@ -116,52 +144,31 @@ func (d *Dao) GetUserInfo(username string) (*User, error) {
 	return &u, nil
 }
 
-// GetUserFiles returns files of given user.
-func (d *Dao) GetUserFiles(username string) (*[]File, error) {
-	col := d.client.Database(d.database).Collection(d.collection)
+// GetUserByAccessKey returns the info of given user.
+func (d *Dao) GetUserByAccessKey(ak string) (*User, error) {
+	col := d.client.Database(d.database).Collection(d.userCollection)
 
 	var u User
-	err := col.FindOne(context.TODO(), bson.M{"username": username}, &options.FindOneOptions{
-		Projection: bson.M{
-			"files": 1,
-		},
-	}).Decode(&u)
+	err := col.FindOne(context.TODO(), bson.M{"accesskey": ak}).Decode(&u)
 	if err != nil {
 		return nil, err
 	}
 
-	return &u.Files, nil
+	return &u, nil
 }
 
-// GetUserStrategy returns the storage strategy of given user.
-func (d *Dao) GetUserStrategy(username string) (*Strategy, error) {
-	col := d.client.Database(d.database).Collection(d.collection)
-
-	var u User
-	err := col.FindOne(context.TODO(), bson.M{"username": username}, &options.FindOneOptions{
-		Projection: bson.M{
-			"strategy": 1,
-		},
-	}).Decode(&u)
-	if err != nil {
-		return nil, err
-	}
-
-	return &u.Strategy, nil
-}
-
-// SetUserStrategy sets the storage strategy of given user.
-func (d *Dao) SetUserStrategy(username string, strategy Strategy) error {
-	col := d.client.Database(d.database).Collection(d.collection)
+// UpdateUser changes given user's password.
+func (d *Dao) UpdateUser(user User) error {
+	col := d.client.Database(d.database).Collection(d.userCollection)
 
 	_, err := col.UpdateOne(
 		context.TODO(),
 		bson.M{
-			"username": username,
+			"username": user.Username,
 		},
 		bson.M{
 			"$set": bson.M{
-				"strategy": strategy,
+				"password": user.Password,
 			},
 		},
 	)
@@ -172,20 +179,45 @@ func (d *Dao) SetUserStrategy(username string, strategy Strategy) error {
 	return nil
 }
 
-// AddFile adds given file for given user.
-func (d *Dao) AddFile(username string, file File) error {
-	col := d.client.Database(d.database).Collection(d.collection)
+// CreateBucket creates a new bucket.
+func (d *Dao) CreateBucket(bucket Bucket) error {
+	col := d.client.Database(d.database).Collection(d.bucketCollection)
 
+	_, err := col.InsertOne(context.TODO(), bucket)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// TODO: DeleteBucket
+
+// GetBucket return the info of given bucket.
+func (d *Dao) GetBucket(bucket string) (*Bucket, error) {
+	col := d.client.Database(d.database).Collection(d.bucketCollection)
+
+	var b Bucket
+	err := col.FindOne(context.TODO(), bson.M{"bucket": bucket}).Decode(&b)
+	if err != nil {
+		return nil, err
+	}
+
+	return &b, nil
+}
+
+// InsertCloudInfo insert new cloud info to database.
+func (d *Dao) InsertCloudInfo(cloud Cloud) error {
+	col := d.client.Database(d.database).Collection(d.cloudCollection)
+	upsert := true
+	opt := options.UpdateOptions{Upsert: &upsert}
 	_, err := col.UpdateOne(
 		context.TODO(),
 		bson.M{
-			"username": username,
+			"name": cloud.Name,
 		},
-		bson.M{
-			"$push": bson.M{
-				"files": file,
-			},
-		},
+		cloud,
+		&opt,
 	)
 	if err != nil {
 		return err
@@ -194,51 +226,26 @@ func (d *Dao) AddFile(username string, file File) error {
 	return nil
 }
 
-// GetFileInfo returns the info of given file.
-func (d *Dao) GetFileInfo(username, filename string) (*File, error) {
-	col := d.client.Database(d.database).Collection(d.collection)
+// GetAllCloudInfo return the info of given bucket.
+func (d *Dao) GetAllCloudInfo() ([]*Cloud, error) {
+	col := d.client.Database(d.database).Collection(d.cloudCollection)
 
-	var u User
-	err := col.FindOne(
-		context.TODO(),
-		bson.M{
-			"username": username,
-		},
-		&options.FindOneOptions{
-			Projection: bson.M{
-				"files": bson.M{
-					"$elemMatch": bson.M{
-						"filename": filename,
-					},
-				},
-			},
-		}).Decode(&u)
-	if err != nil || len(u.Files) == 0 {
-		return nil, errors.New("file not found")
-	}
-
-	return &u.Files[0], nil
-}
-
-// RemoveFile removes the given file from database.
-func (d *Dao) RemoveFile(username, filename string) error {
-	col := d.client.Database(d.database).Collection(d.collection)
-
-	_, err := col.UpdateOne(context.TODO(),
-		bson.M{
-			"username": username,
-		},
-		bson.M{
-			"$pull": bson.M{
-				"files": bson.M{
-					"filename": filename,
-				},
-			},
-		},
-	)
+	var clouds []*Cloud
+	cur, err := col.Find(context.TODO(), bson.D{})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	for cur.Next(context.TODO()) {
+
+		// create a value into which the single document can be decoded
+		var elem Cloud
+		err := cur.Decode(&elem)
+		if err != nil {
+			return nil, err
+		}
+		clouds = append(clouds, &elem)
+	}
+
+	return clouds, nil
 }

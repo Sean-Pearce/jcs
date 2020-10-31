@@ -1,0 +1,11 @@
+--- a/vue.config.js	2020-06-24 19:04:17.650000000 +0800
++++ b/vue.config.js	2020-06-24 18:10:34.790000000 +0800
+@@ -25,7 +25,7 @@
+    * In most cases please use '/' !!!
+    * Detail: https://cli.vuejs.org/config/#publicpath
+    */
+-  publicPath: '/',
++  publicPath: '/jcs/',
+   outputDir: 'dist',
+   assetsDir: 'static',
+   lintOnSave: process.env.NODE_ENV === 'development',

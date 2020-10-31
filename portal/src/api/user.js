@@ -41,3 +41,14 @@ export function getStrategy() {
     method: 'get'
   })
 }
+
+export function changePassword(oldpw, newpw) {
+  const form_data = new FormData()
+  form_data.append('password', oldpw)
+  form_data.append('new_password', newpw)
+  return request({
+    url: '/user/passwd',
+    method: 'post',
+    data: form_data
+  })
+}

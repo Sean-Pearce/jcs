@@ -12,6 +12,7 @@
         :collapse-transition="false"
         mode="vertical"
       >
+        <div><a href="/" class="router-link-exact-active router-link-active"><li role="menuitem" tabindex="-1" class="el-menu-item is-active submenu-title-noDropdown" style="padding-left: 20px; color: rgb(64, 158, 255); background-color: rgb(250, 250, 250);"><img src="http://117.50.133.184/image/logo.png" style="max-width: 100%; max-height: 100%; padding-left: 5px; padding-right: 5px;"></li></a></div>
         <sidebar-item v-for="route in routes" :key="route.path" :item="route" :base-path="route.path" />
       </el-menu>
     </el-scrollbar>

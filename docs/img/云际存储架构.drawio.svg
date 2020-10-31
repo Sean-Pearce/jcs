@@ -1,0 +1,37 @@
+<svg host="65bd71144e" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="471px" height="531px" viewBox="-0.5 -0.5 471 531" content="&lt;mxfile host=&quot;b530f01c-10e3-4ac1-be5f-944753625486&quot; modified=&quot;2020-10-30T02:38:22.977Z&quot; agent=&quot;5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code/1.50.1 Chrome/83.0.4103.122 Electron/9.2.1 Safari/537.36&quot; version=&quot;13.6.5&quot; etag=&quot;cqR6cK_Vm9P4l_s11iR7&quot;&gt;&lt;diagram id=&quot;2J8A4G7szYz-KFf1HgK0&quot; name=&quot;Page-1&quot;&gt;zZZNb9swDIZ/ja+DbSVOcmzdrD10wIActh1VS7M1yKah0LW9Xz85pj8Up92KBUUvgfiKlMlHhBiPxXlzb3iZfQEhtRf6ovHYnReGu2Bnfzuh7YUo3PRCapTopWASDuq3JNEntVJCHh1HBNCoSldMoChkgo7GjYHadfsJ2v1qyVO5EA4J10v1mxKY9ep2qKLTH6RKs+HLQUQF53xwpkqOGRdQzyS291hsALBf5U0sdcdu4NLHfX5hd0zMyAL/JWDdBzxzXVFtlBe2Q7E2wHK1xm2dKZSHkifdTm1v1moZ5tpagV0KfsykIIPOlQZl82JuwVix7RQJuUTTWpchYEPUqEtGaPXEfLUhLZvxZmsSOd1zOp49obALonGZTPgWMvYay05MNFTi76SuAIcx34WzW8IJwgtwtldgwz42m1XksmHbd2Sz+thswvUZm/fsm+0ShbAPK5lgMIMUCq73k3proCrE6VnxrTX5PAKUhOWXRGxpSvAKwYVmwZj2exf/aT2YP+i4k3HXOFZLVp9rl+DrqG09UJmEvCIaR9ykEmdv7PJCjNQc1bN7+v/QjRadF2vV5XoOfei6Ktc3CYKxxXY9peyAe+RPUn+Fo0IFhXV5AkTIZw43WqXdBsJZb0KFWhUyHkeuf6WHbudOgdWyX9mFdo3e3q7WnAbvaW/274Xt/wA=&lt;/diagram&gt;&lt;/mxfile&gt;">
+    <defs/>
+    <g>
+        <ellipse cx="235" cy="355" rx="235" ry="175" fill="#ffffff" stroke="#000000" stroke-dasharray="3 3" pointer-events="all"/>
+        <path d="M 181 270 C 157 270 151 290 170.2 294 C 151 302.8 172.6 322 188.2 314 C 199 330 235 330 247 314 C 271 314 271 298 256 290 C 271 274 247 258 226 266 C 211 254 187 254 181 270 Z" fill="#ffffff" stroke="#000000" stroke-miterlimit="10" pointer-events="all"/>
+        <path d="M 311 360 C 287 360 281 380 300.2 384 C 281 392.8 302.6 412 318.2 404 C 329 420 365 420 377 404 C 401 404 401 388 386 380 C 401 364 377 348 356 356 C 341 344 317 344 311 360 Z" fill="#ffffff" stroke="#000000" stroke-miterlimit="10" pointer-events="all"/>
+        <path d="M 101 370 C 77 370 71 390 90.2 394 C 71 402.8 92.6 422 108.2 414 C 119 430 155 430 167 414 C 191 414 191 398 176 390 C 191 374 167 358 146 366 C 131 354 107 354 101 370 Z" fill="#ffffff" stroke="#000000" stroke-miterlimit="10" pointer-events="all"/>
+        <path d="M 235 60 L 235 173.63" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="stroke"/>
+        <path d="M 235 178.88 L 231.5 171.88 L 235 173.63 L 238.5 171.88 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="all"/>
+        <ellipse cx="235" cy="7.5" rx="7.5" ry="7.5" fill="#ffffff" stroke="#000000" pointer-events="all"/>
+        <path d="M 235 15 L 235 40 M 235 20 L 220 20 M 235 20 L 250 20 M 235 40 L 220 60 M 235 40 L 250 60" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="all"/>
+        <g transform="translate(-0.5 -0.5)">
+            <switch>
+                <foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+                    <div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe flex-start; justify-content: unsafe center; width: 1px; height: 1px; padding-top: 67px; margin-left: 235px;">
+                        <div style="box-sizing: border-box; font-size: 0; text-align: center; ">
+                            <div style="display: inline-block; font-size: 12px; font-family: Helvetica; color: #000000; line-height: 1.2; pointer-events: all; white-space: nowrap; ">
+                                Client
+                            </div>
+                        </div>
+                    </div>
+                </foreignObject>
+                <text x="235" y="79" fill="#000000" font-family="Helvetica" font-size="12px" text-anchor="middle">
+                    Client
+                </text>
+            </switch>
+        </g>
+    </g>
+    <switch>
+        <g requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"/>
+        <a transform="translate(0,-5)" xlink:href="https://desk.draw.io/support/solutions/articles/16000042487" target="_blank">
+            <text text-anchor="middle" font-size="10px" x="50%" y="100%">
+                Viewer does not support full SVG 1.1
+            </text>
+        </a>
+    </switch>
+</svg>

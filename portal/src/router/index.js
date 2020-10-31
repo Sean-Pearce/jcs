@@ -87,6 +87,19 @@ export const constantRoutes = [
   },
 
   {
+    path: '/account',
+    component: Layout,
+    children: [
+      {
+        path: '',
+        name: 'Dashboard',
+        component: () => import('@/views/account/index'),
+        meta: { title: '用户设置', icon: 'user' }
+      }
+    ]
+  },
+
+  {
     path: 'external-link',
     component: Layout,
     children: [

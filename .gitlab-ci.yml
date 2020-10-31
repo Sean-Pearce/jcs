@@ -1,0 +1,79 @@
+stages:    
+  - build
+  - test
+  - deliver
+  - staging
+  - deploy
+
+build_image:
+  stage: build
+  script:
+    - docker build -t jcs-httpserver:$CI_COMMIT_SHORT_SHA --target=httpserver .
+    - docker build -t jcs-storage:$CI_COMMIT_SHORT_SHA --target=storage .
+    - docker build -t jcs-scheduler:$CI_COMMIT_SHORT_SHA --target=scheduler .
+    - cd portal
+    - docker build -t jcs-portal:$CI_COMMIT_SHORT_SHA .
+    - ./patch.sh
+    - docker build -t jcs-portal:jcs-$CI_COMMIT_SHORT_SHA .
+    - git checkout .
+    - cd ..
+
+intergration_testing:
+  stage: test
+  script:
+    - docker tag jcs-httpserver:$CI_COMMIT_SHORT_SHA jcs-httpserver:latest
+    - docker tag jcs-storage:$CI_COMMIT_SHORT_SHA jcs-storage:latest
+    - docker tag jcs-scheduler:$CI_COMMIT_SHORT_SHA jcs-scheduler:latest
+    - docker tag jcs-portal:$CI_COMMIT_SHORT_SHA jcs-portal:latest
+    - ./test.sh
+
+deploy_staging:
+  stage: staging
+  script:
+    - docker tag jcs-httpserver:$CI_COMMIT_SHORT_SHA jcs-httpserver:staging
+    - docker tag jcs-storage:$CI_COMMIT_SHORT_SHA jcs-storage:staging
+    - docker tag jcs-scheduler:$CI_COMMIT_SHORT_SHA jcs-scheduler:staging
+    - docker tag jcs-portal:$CI_COMMIT_SHORT_SHA jcs-portal:staging
+    - cd ~/jcs-staging && docker-compose down
+    - cd ~/jcs-staging && docker-compose up -d
+  when: manual
+  environment:
+    name: staging
+    url: http://182.92.117.116:15004/
+
+push_image:
+  stage: deliver
+  script:
+    - docker tag jcs-httpserver:$CI_COMMIT_SHORT_SHA harbor.cloudcps.net/library/jcs-httpserver:$CI_COMMIT_SHORT_SHA
+    - docker tag jcs-storage:$CI_COMMIT_SHORT_SHA harbor.cloudcps.net/library/jcs-storage:$CI_COMMIT_SHORT_SHA
+    - docker tag jcs-scheduler:$CI_COMMIT_SHORT_SHA harbor.cloudcps.net/library/jcs-scheduler:$CI_COMMIT_SHORT_SHA
+    - docker tag jcs-portal:$CI_COMMIT_SHORT_SHA harbor.cloudcps.net/library/jcs-portal:$CI_COMMIT_SHORT_SHA
+    - docker tag jcs-portal:jcs-$CI_COMMIT_SHORT_SHA harbor.cloudcps.net/library/jcs-portal:jcs-$CI_COMMIT_SHORT_SHA
+    - docker push harbor.cloudcps.net/library/jcs-httpserver:$CI_COMMIT_SHORT_SHA
+    - docker push harbor.cloudcps.net/library/jcs-storage:$CI_COMMIT_SHORT_SHA
+    - docker push harbor.cloudcps.net/library/jcs-scheduler:$CI_COMMIT_SHORT_SHA
+    - docker push harbor.cloudcps.net/library/jcs-portal:$CI_COMMIT_SHORT_SHA
+    - docker push harbor.cloudcps.net/library/jcs-portal:jcs-$CI_COMMIT_SHORT_SHA
+  only:
+    - master
+
+deploy_production:
+  stage: deploy
+  script:
+    - ssh -p 32122 root@117.50.133.184 "docker pull harbor.cloudcps.net/library/jcs-httpserver:$CI_COMMIT_SHORT_SHA"
+    - ssh -p 32122 root@117.50.133.184 "docker pull harbor.cloudcps.net/library/jcs-storage:$CI_COMMIT_SHORT_SHA"
+    - ssh -p 32122 root@117.50.133.184 "docker pull harbor.cloudcps.net/library/jcs-scheduler:$CI_COMMIT_SHORT_SHA"
+    - ssh -p 32122 root@117.50.133.184 "docker pull harbor.cloudcps.net/library/jcs-portal:jcs-$CI_COMMIT_SHORT_SHA"
+    - ssh -p 32122 root@117.50.133.184 "docker tag harbor.cloudcps.net/library/jcs-httpserver:$CI_COMMIT_SHORT_SHA jcs-httpserver:prod"
+    - ssh -p 32122 root@117.50.133.184 "docker tag harbor.cloudcps.net/library/jcs-storage:$CI_COMMIT_SHORT_SHA jcs-storage:prod"
+    - ssh -p 32122 root@117.50.133.184 "docker tag harbor.cloudcps.net/library/jcs-scheduler:$CI_COMMIT_SHORT_SHA jcs-scheduler:prod"
+    - ssh -p 32122 root@117.50.133.184 "docker tag harbor.cloudcps.net/library/jcs-portal:jcs-$CI_COMMIT_SHORT_SHA jcs-portal:prod"
+    - ssh -p 32122 root@117.50.133.184 "cd jcs && docker-compose down"
+    - ssh -p 32122 root@117.50.133.184 "cd jcs && docker-compose up -d"
+  when: manual
+  #allow_failure: false
+  environment:
+    name: production
+    url: http://117.50.133.184/jcs/
+  only:
+    - master

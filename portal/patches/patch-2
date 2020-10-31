@@ -1,0 +1,9 @@
+--- a/.env.production	2020-06-24 19:04:17.650000000 +0800
++++ b/.env.production	2020-06-24 18:11:57.760000000 +0800
+@@ -2,5 +2,5 @@
+ ENV = 'production'
+ 
+ # base api
+-VUE_APP_BASE_API = '/api'
++VUE_APP_BASE_API = '/jcs/api'
+ 

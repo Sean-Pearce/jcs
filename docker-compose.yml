@@ -4,7 +4,7 @@ services:
     portal:
         depends_on: 
             - httpserver
-        image: harbor.cloudcps.net/library/jcs-portal
+        image: jcs-portal
         volumes: 
             - ./configs/portal.conf:/etc/nginx/nginx.conf:ro
         ports:
@@ -17,7 +17,9 @@ services:
             - storage-sh
             - storage-gz
             - scheduler
-        image: harbor.cloudcps.net/library/jcs-httpserver
+        image: jcs-httpserver
+        ports: 
+            - 10090:10090
         volumes: 
             - ./configs/httpserver.json:/httpserver/httpserver.json:ro
         command: -mongo=mongodb://mongo:27017 -sched=scheduler:5001 -test
@@ -25,7 +27,7 @@ services:
     storage-bj:
         depends_on: 
             - minio-bj
-        image: harbor.cloudcps.net/library/jcs-storage
+        image: jcs-storage
         volumes: 
             - ./configs/storage.json:/storage/storage.json:ro
         command: -endpoint=minio-bj:9000 -ak=minioadmin -sk=minioadmin
@@ -33,20 +35,20 @@ services:
     storage-sh:
         depends_on: 
             - minio-sh
-        image: harbor.cloudcps.net/library/jcs-storage
+        image: jcs-storage
         volumes: 
             - ./configs/storage.json:/storage/storage.json:ro
         command: -endpoint=minio-sh:9000 -ak=minioadmin -sk=minioadmin
     storage-gz:
         depends_on: 
             - minio-gz
-        image: harbor.cloudcps.net/library/jcs-storage
+        image: jcs-storage
         volumes: 
             - ./configs/storage.json:/storage/storage.json:ro
         command: -endpoint=minio-gz:9000 -ak=minioadmin -sk=minioadmin
     
     scheduler:
-        image: harbor.cloudcps.net/library/jcs-scheduler
+        image: jcs-scheduler
 
     mongo:
         image: mongo
@@ -62,3 +64,16 @@ services:
     minio-gz:
         image: minio/minio
         command: server /data
+
+    prometheus:
+        image: prom/prometheus
+        volumes:
+            - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+        ports:
+            - "9090:9090"
+    grafana:
+        image: grafana/grafana
+        ports:
+            - "3000:3000"
+        volumes:
+            - /opt/grafana-storage:/var/lib/grafana:rw
