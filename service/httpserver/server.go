@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/Sean-Pearce/jcs/service/httpserver/dao"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -199,7 +200,6 @@ func createBucket(c *gin.Context) {
 		return
 	}
 
-	// TODO: validate
 	bucket.Owner = username
 	err = d.CreateBucket(bucket)
 	if err != nil {
@@ -213,15 +213,11 @@ func createBucket(c *gin.Context) {
 	clouds := append(bucket.Locations, minioName)
 	for _, cloud := range clouds {
 		client := s3Map[cloud]
-		bucketname := bucket.Name
 		if client == nil {
 			logrus.Errorf("client is nil")
 		}
-		if cloud == minioName {
-			bucketname = cloud + "-" + bucket.Name
-		}
 		_, err = client.CreateBucket(&s3.CreateBucketInput{
-			Bucket: &bucketname,
+			Bucket: aws.String(getBucketName(cloud, bucket.Name)),
 		})
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{

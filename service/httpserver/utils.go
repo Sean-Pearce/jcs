@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/base64"
+	"fmt"
 	"math/rand"
 	"time"
 )
@@ -23,4 +24,11 @@ func genAccessKey() string {
 func getUsernameByToken(token string) string {
 	username := tokenMap[token]
 	return username
+}
+
+func getBucketName(cloud string, bucket string) string {
+	if cloud == minioName {
+		return bucket
+	}
+	return fmt.Sprintf("jcs-%s-%s", cloud, bucket)
 }
