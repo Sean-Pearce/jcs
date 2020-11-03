@@ -17,7 +17,7 @@ import (
 const (
 	constBufferLength = 32 * 1024
 	constRGWBackend   = "radosgw"
-	constDatabase     = "test"
+	constDatabase     = "jcs"
 	constUserTable    = "user"
 	constBucketTable  = "bucket"
 	constCloudTable   = "cloud"
@@ -78,8 +78,6 @@ func NewProxy(endpoint, ak, sk string, mongoURL string) (*Proxy, error) {
 }
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// add logging
-	log.Infof("[Request] %#v", r)
 	// forward
 	if err := p.forward(w, r); err != nil {
 		log.Error(err)
@@ -90,21 +88,25 @@ func (p *Proxy) forward(w http.ResponseWriter, r *http.Request) error {
 	// parse request
 	query := parseS3Query(r)
 	if query.Type == notImplementReq {
-		return NewS3Error(ErrNotImplemented, nil)
+		writeError(r, w, NewS3Error(ErrNotImplemented, nil))
+		return nil
 	}
 
 	// authentication
 	user, err := p.checkSignature(r)
 	if err != nil {
-		return err
+		writeError(r, w, NewS3Error(ErrInvalidAccessKeyID, nil))
+		return nil
 	}
-	// TODO: handle ListBucketsReq
+
+	// check authorization
 	bucket, err := p.getBucket(query.Bucket)
 	if err != nil {
 		return err
 	}
 	if bucket.Owner != user.Username {
-		return NewS3Error(ErrAccessDenied, nil)
+		writeError(r, w, NewS3Error(ErrAccessDenied, nil))
+		return nil
 	}
 
 	// redirect PutObject, GetObject, ListObjects. CreateBucket only supported by web ui

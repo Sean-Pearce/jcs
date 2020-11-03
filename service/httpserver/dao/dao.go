@@ -42,8 +42,8 @@ type Bucket struct {
 type Cloud struct {
 	Name      string
 	Endpoint  string
-	AccessKey string `bson:"access_key"`
-	SecretKey string `bson:"secret_key"`
+	AccessKey string
+	SecretKey string
 	Status    string // "Online" | "Offline"
 	Price     float64
 	Latency   float64
@@ -200,7 +200,7 @@ func (d *Dao) GetBucket(bucket string) (*Bucket, error) {
 	col := d.client.Database(d.database).Collection(d.bucketCollection)
 
 	var b Bucket
-	err := col.FindOne(context.TODO(), bson.M{"bucket": bucket}).Decode(&b)
+	err := col.FindOne(context.TODO(), bson.M{"name": bucket}).Decode(&b)
 	if err != nil {
 		return nil, err
 	}
