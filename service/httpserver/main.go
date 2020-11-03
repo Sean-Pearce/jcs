@@ -2,14 +2,24 @@ package main
 
 import (
 	"flag"
+	"strings"
 
 	"github.com/Sean-Pearce/jcs/service/httpserver/dao"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
 	version = "v0.1"
+
+	minioName     = "minio"
+	minioEndpoint = "http://localhost:9002"
+	minioAK       = "minioadmin"
+	minioSK       = "minioadmin"
 )
 
 var (
@@ -20,9 +30,8 @@ var (
 	debug         = flag.Bool("debug", false, "debug mode")
 	testMode      = flag.Bool("test", false, "enable test mode")
 	tokenMap      map[string]string
-	clientList    []string
+	s3Map         map[string]*s3.S3
 	d             *dao.Dao
-	promAddr      = ":10090"
 )
 
 func init() {
@@ -50,6 +59,39 @@ func init() {
 	}
 
 	tokenMap = make(map[string]string)
+	s3Map = make(map[string]*s3.S3)
+
+	clouds, err := d.GetAllCloudInfo()
+	if err != nil {
+		panic(err)
+	}
+	clouds = append(clouds, &dao.Cloud{
+		Name:      minioName,
+		AccessKey: minioAK,
+		SecretKey: minioSK,
+		Endpoint:  minioEndpoint,
+	})
+
+	for _, cloud := range clouds {
+		pathStyle := true
+		if strings.HasPrefix(cloud.Name, "aliyun") {
+			pathStyle = false
+		}
+		sess := session.Must(session.NewSession(
+			&aws.Config{
+				Endpoint: &cloud.Endpoint,
+				Region:   aws.String("us-east-1"),
+				Credentials: credentials.NewStaticCredentials(
+					cloud.AccessKey,
+					cloud.SecretKey,
+					"",
+				),
+				DisableSSL:       aws.Bool(true),
+				S3ForcePathStyle: aws.Bool(pathStyle),
+			}),
+		)
+		s3Map[cloud.Name] = s3.New(sess)
+	}
 }
 
 func main() {

@@ -4,7 +4,9 @@ import (
 	"net/http"
 
 	"github.com/Sean-Pearce/jcs/service/httpserver/dao"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -186,7 +188,7 @@ func passwd(c *gin.Context) {
 }
 
 func createBucket(c *gin.Context) {
-	username := getUsernameByToken(c.GetHeader("X-Token"))
+	username := getUsernameByToken(c.Query("t"))
 	var bucket dao.Bucket
 	err := c.BindJSON(&bucket)
 	if err != nil {
@@ -207,6 +209,30 @@ func createBucket(c *gin.Context) {
 		})
 		return
 	}
+
+	clouds := append(bucket.Locations, minioName)
+	for _, cloud := range clouds {
+		client := s3Map[cloud]
+		bucketname := bucket.Name
+		if client == nil {
+			logrus.Errorf("client is nil")
+		}
+		if cloud == minioName {
+			bucketname = cloud + "-" + bucket.Name
+		}
+		_, err = client.CreateBucket(&s3.CreateBucketInput{
+			Bucket: &bucketname,
+		})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    codeInternalError,
+				"message": "create bucket failed.",
+			})
+			logrus.WithError(err).Errorf("create bucket failed at %s", cloud)
+			return
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"code": codeOK,
 		"msg":  "success",

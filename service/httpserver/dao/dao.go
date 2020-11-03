@@ -40,11 +40,13 @@ type Bucket struct {
 }
 
 type Cloud struct {
-	Name    string
-	Address string
-	Status  string // "Online" | "Offline"
-	Price   float64
-	Latency float64
+	Name      string
+	Endpoint  string
+	AccessKey string `bson:"access_key"`
+	SecretKey string `bson:"secret_key"`
+	Status    string // "Online" | "Offline"
+	Price     float64
+	Latency   float64
 }
 
 // NewDao constructs a data access object (Dao).

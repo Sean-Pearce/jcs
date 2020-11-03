@@ -6,6 +6,10 @@ import (
 	"net/url"
 
 	"github.com/Sean-Pearce/jcs/service/httpserver/dao"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -21,8 +25,9 @@ const (
 
 type Proxy struct {
 	// storage backends
-	backend *httputil.ReverseProxy
 	dao     *dao.Dao
+	backend *httputil.ReverseProxy
+	s3Map   map[string]*s3.S3
 }
 
 func NewProxy(endpoint, ak, sk string, mongoURL string) (*Proxy, error) {
@@ -44,9 +49,31 @@ func NewProxy(endpoint, ak, sk string, mongoURL string) (*Proxy, error) {
 		return nil, err
 	}
 
-	p.backend = rp
-	p.dao = d
+	// init s3 clients
+	s3map := make(map[string]*s3.S3)
 
+	clouds, err := d.GetAllCloudInfo()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, cloud := range clouds {
+		sess := session.Must(session.NewSession(
+			&aws.Config{
+				Endpoint: &cloud.Endpoint,
+				Credentials: credentials.NewStaticCredentials(
+					cloud.AccessKey,
+					cloud.SecretKey,
+					"",
+				),
+			}),
+		)
+		s3map[cloud.Name] = s3.New(sess)
+	}
+
+	p.dao = d
+	p.backend = rp
+	p.s3Map = s3map
 	return p, nil
 }
 
