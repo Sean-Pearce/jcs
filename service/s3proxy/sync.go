@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"path"
-	"path/filepath"
 
 	"github.com/Sean-Pearce/jcs/service/httpserver/dao"
 	"github.com/aws/aws-sdk-go/aws"
@@ -13,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/klauspost/reedsolomon"
 	uuid "github.com/satori/go.uuid"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 func (p *Proxy) upload(bucket *dao.Bucket, key string) error {
@@ -31,10 +30,12 @@ func (p *Proxy) uploadReplicaMode(bucket *dao.Bucket, key string) error {
 	dir := path.Join(p.tmpPath, uuid.NewV4().String())
 	err := os.MkdirAll(dir, 0755)
 	if err != nil {
+		log.WithError(err).Errorf("os.MkDirAll(%s, 0755) failed.", dir)
 		return err
 	}
 	file, err := os.Create(path.Join(dir, key))
 	if err != nil {
+		log.WithError(err).Errorf("os.Create(%s) failed.", path.Join(dir, key))
 		return err
 	}
 	defer file.Close()
@@ -47,6 +48,7 @@ func (p *Proxy) uploadReplicaMode(bucket *dao.Bucket, key string) error {
 		Key:    aws.String(key),
 	})
 	if err != nil {
+		log.WithError(err).Errorf("Download object %s from bucket %s failed.", key, bucket.Name)
 		return err
 	}
 
@@ -59,7 +61,8 @@ func (p *Proxy) uploadReplicaMode(bucket *dao.Bucket, key string) error {
 			Body:   file,
 		})
 		if err != nil {
-			return err
+			log.WithError(err).Errorf("Put object %s to bucket %s failed.", key, getBucketName(cloud, bucket.Name))
+			continue
 		}
 	}
 
@@ -71,10 +74,12 @@ func (p *Proxy) uploadECMode(bucket *dao.Bucket, key string) error {
 	dir := path.Join(p.tmpPath, uuid.NewV4().String())
 	err := os.MkdirAll(dir, 0755)
 	if err != nil {
+		log.WithError(err).Errorf("os.MkDirAll(%s, 0755) failed.", dir)
 		return err
 	}
 	file, err := os.Create(path.Join(dir, key))
 	if err != nil {
+		log.WithError(err).Errorf("os.Create(%s) failed.", path.Join(dir, key))
 		return err
 	}
 	defer file.Close()
@@ -87,12 +92,14 @@ func (p *Proxy) uploadECMode(bucket *dao.Bucket, key string) error {
 		Key:    aws.String(key),
 	})
 	if err != nil {
+		log.WithError(err).Errorf("Download object %s from bucket %s failed.", key, bucket.Name)
 		return err
 	}
 
 	// Create encoding matrix.
 	enc, err := reedsolomon.NewStream(bucket.N, bucket.K)
 	if err != nil {
+		log.WithError(err).Errorf("Create new encoder(n=%d,k=%d) failed.", bucket.N, bucket.K)
 		return err
 	}
 
@@ -100,15 +107,17 @@ func (p *Proxy) uploadECMode(bucket *dao.Bucket, key string) error {
 	out := make([]*os.File, bucket.N+bucket.K)
 	for i := range out {
 		outfn := fmt.Sprintf("%s.%d", key, i)
-		out[i], err = os.Create(filepath.Join(dir, outfn))
+		out[i], err = os.Create(path.Join(dir, outfn))
 		if err != nil {
-			return nil
+			log.WithError(err).Errorf("os.Create(%s) failed.", path.Join(dir, outfn))
+			return err
 		}
 	}
 
 	// Split into files.
 	instat, err := file.Stat()
 	if err != nil {
+		log.WithError(err).Errorf("file.Stat() failed: %s.", file.Name())
 		return err
 	}
 	data := make([]io.Writer, bucket.N)
@@ -117,6 +126,7 @@ func (p *Proxy) uploadECMode(bucket *dao.Bucket, key string) error {
 	}
 	err = enc.Split(file, data, instat.Size())
 	if err != nil {
+		log.WithError(err).Errorf("Split file %s(%sB) failed.", file.Name(), instat.Size())
 		return err
 	}
 
@@ -126,6 +136,7 @@ func (p *Proxy) uploadECMode(bucket *dao.Bucket, key string) error {
 		out[i].Close()
 		f, err := os.Open(out[i].Name())
 		if err != nil {
+			log.WithError(err).Errorf("Open file %s failed.", out[i].Name())
 			return err
 		}
 		input[i] = f
@@ -146,6 +157,7 @@ func (p *Proxy) uploadECMode(bucket *dao.Bucket, key string) error {
 		out[i].Close()
 		f, err := os.Open(out[i].Name())
 		if err != nil {
+			log.WithError(err).Errorf("Open file %s failed.", out[i].Name())
 			return err
 		}
 		defer f.Close()
@@ -157,6 +169,7 @@ func (p *Proxy) uploadECMode(bucket *dao.Bucket, key string) error {
 			Body:   f,
 		})
 		if err != nil {
+			log.WithError(err).Errorf("Put object %s to bucket %s failed.", key, getBucketName(cloud, bucket.Name))
 			return err
 		}
 	}
@@ -267,7 +280,7 @@ func (p *Proxy) downloadECMode(bucket *dao.Bucket, key string) error {
 
 	err = enc.Join(file, inputs, 1024)
 	if err != nil {
-		logrus.WithError(err).Error("reconsruct failed")
+		log.WithError(err).Error("reconsruct failed")
 		return err
 	}
 

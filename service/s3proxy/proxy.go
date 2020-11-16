@@ -101,33 +101,36 @@ func NewProxy(endpoint, ak, sk string, mongoURL string, tmpPath string) (*Proxy,
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// forward
 	if err := p.forward(w, r); err != nil {
-		// log.Error(err)
+		writeError(r, w, err)
 	}
 }
 
 func (p *Proxy) forward(w http.ResponseWriter, r *http.Request) error {
 	// parse request
 	query := parseS3Query(r)
+	log.Infof("s3 query: %#v", query)
+
 	if query.Type == notImplementReq {
-		writeError(r, w, NewS3Error(ErrNotImplemented, nil))
-		return nil
+		log.Infof("%s not implemented.", query.Type)
+		return NewS3Error(ErrNotImplemented, nil)
 	}
 
 	// authentication
 	user, err := p.checkSignature(r)
 	if err != nil {
-		writeError(r, w, NewS3Error(ErrInvalidAccessKeyID, nil))
-		return nil
+		log.WithError(err).Infof("Check signature failed.")
+		return NewS3Error(ErrInvalidAccessKeyID, nil)
 	}
 
 	// check authorization
 	bucket, err := p.getBucket(query.Bucket)
 	if err != nil {
+		log.WithError(err).Infof("Get bucket(%s) failed", query.Bucket)
 		return err
 	}
 	if bucket.Owner != user.Username {
-		writeError(r, w, NewS3Error(ErrAccessDenied, nil))
-		return nil
+		log.Infof("Access denied. Username: %s, Owner: %s", user.Username, bucket.Owner)
+		return NewS3Error(ErrAccessDenied, nil)
 	}
 
 	if query.Type == writeBucketReq && query.Bucket != "" && query.Key != "" {
@@ -136,16 +139,15 @@ func (p *Proxy) forward(w http.ResponseWriter, r *http.Request) error {
 
 		err = p.upload(bucket, query.Key)
 		if err != nil {
-			writeError(r, w, NewS3Error(ErrInternalError, nil))
-			return err
+			log.WithError(err).Errorf("Upload to clouds failed.")
+			return NewS3Error(ErrInternalError, nil)
 		}
 	} else if query.Type == readBucketReq && query.Bucket != "" && query.Key != "" {
 		// GetBucket
 		err = p.download(bucket, query.Key)
 		if err != nil {
 			log.WithError(err).Error("download failed.")
-			writeError(r, w, NewS3Error(ErrInternalError, nil))
-			return err
+			return NewS3Error(ErrInternalError, nil)
 		}
 		p.backend.ServeHTTP(w, r)
 	} else {

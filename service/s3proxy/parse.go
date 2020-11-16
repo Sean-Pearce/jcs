@@ -77,7 +77,6 @@ func parseS3Query(r *http.Request) (q *s3Query) {
 	}
 	if q.Key == "" {
 		if q.Bucket == "" {
-			// q.Type = listBucketsReq
 			q.Type = notImplementReq
 			return
 		}

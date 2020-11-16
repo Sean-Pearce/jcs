@@ -2,7 +2,11 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
+	"path"
+	"runtime"
+	"time"
 
 	"github.com/Sean-Pearce/jcs/service/s3proxy"
 	log "github.com/sirupsen/logrus"
@@ -19,6 +23,16 @@ var (
 
 func main() {
 	flag.Parse()
+
+	log.SetReportCaller(true)
+	log.SetFormatter(&log.TextFormatter{
+		FullTimestamp:   true,
+		TimestampFormat: time.RFC3339,
+		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+			filename := path.Base(f.File)
+			return fmt.Sprintf("%s()", f.Function), fmt.Sprintf("%s:%d", filename, f.Line)
+		},
+	})
 	log.Infoln("s3proxy is running ...")
 
 	p, err := s3proxy.NewProxy(*flagEndpoint, *flagAk, *flagSk, *flagMongoURL, *flagTmpPath)
