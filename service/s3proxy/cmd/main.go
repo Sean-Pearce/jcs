@@ -14,13 +14,14 @@ var (
 	flagSk       = flag.String("sk", "minioadmin", "minio secret key")
 	flagEndpoint = flag.String("endpoint", "http://127.0.0.1:9000", "minio endpoint")
 	flagPort     = flag.String("port", ":5002", "server port number")
+	flagTmpPath  = flag.String("tmp", "/tmp/jcs", "folder for tmp files")
 )
 
 func main() {
 	flag.Parse()
 	log.Infoln("s3proxy is running ...")
 
-	p, err := s3proxy.NewProxy(*flagEndpoint, *flagAk, *flagSk, *flagMongoURL)
+	p, err := s3proxy.NewProxy(*flagEndpoint, *flagAk, *flagSk, *flagMongoURL, *flagTmpPath)
 	if err != nil {
 		panic(err)
 	}

@@ -35,8 +35,8 @@ type Bucket struct {
 	Mode      string // "ec" | "replica"
 	Locations []string
 	Replica   int
-	n         int
-	k         int
+	N         int
+	K         int
 }
 
 type Cloud struct {

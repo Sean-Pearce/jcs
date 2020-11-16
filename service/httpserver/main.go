@@ -79,7 +79,7 @@ func init() {
 		}
 		sess := session.Must(session.NewSession(
 			&aws.Config{
-				Endpoint: &cloud.Endpoint,
+				Endpoint: aws.String(cloud.Endpoint),
 				Region:   aws.String("us-east-1"),
 				Credentials: credentials.NewStaticCredentials(
 					cloud.AccessKey,

@@ -10,14 +10,11 @@ require (
 	github.com/golang/protobuf v1.4.2
 	github.com/klauspost/compress v1.10.10 // indirect
 	github.com/klauspost/cpuid v1.3.1 // indirect
+	github.com/klauspost/reedsolomon v1.9.9
 	github.com/minio/minio-go/v6 v6.0.57
 	github.com/prometheus/client_golang v1.7.1
+	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.6.0
-	github.com/gin-gonic/gin v1.6.2
-	github.com/go-resty/resty/v2 v2.2.0
-	github.com/golang/protobuf v1.3.5
-	github.com/minio/minio-go/v6 v6.0.52
-	github.com/sirupsen/logrus v1.5.0
 	github.com/stretchr/testify v1.5.1
 	go.mongodb.org/mongo-driver v1.3.5
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899 // indirect

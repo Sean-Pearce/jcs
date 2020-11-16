@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 
 	"github.com/Sean-Pearce/jcs/service/httpserver/dao"
 	"github.com/aws/aws-sdk-go/aws"
@@ -21,6 +22,11 @@ const (
 	constUserTable    = "user"
 	constBucketTable  = "bucket"
 	constCloudTable   = "cloud"
+
+	minioName     = "minio"
+	minioEndpoint = "http://localhost:9002"
+	minioAK       = "minioadmin"
+	minioSK       = "minioadmin"
 )
 
 type Proxy struct {
@@ -28,9 +34,10 @@ type Proxy struct {
 	dao     *dao.Dao
 	backend *httputil.ReverseProxy
 	s3Map   map[string]*s3.S3
+	tmpPath string
 }
 
-func NewProxy(endpoint, ak, sk string, mongoURL string) (*Proxy, error) {
+func NewProxy(endpoint, ak, sk string, mongoURL string, tmpPath string) (*Proxy, error) {
 	p := &Proxy{}
 
 	target, err := url.Parse(endpoint)
@@ -56,16 +63,29 @@ func NewProxy(endpoint, ak, sk string, mongoURL string) (*Proxy, error) {
 	if err != nil {
 		return nil, err
 	}
+	clouds = append(clouds, &dao.Cloud{
+		Name:      minioName,
+		AccessKey: minioAK,
+		SecretKey: minioSK,
+		Endpoint:  minioEndpoint,
+	})
 
 	for _, cloud := range clouds {
+		pathStyle := true
+		if strings.HasPrefix(cloud.Name, "aliyun") {
+			pathStyle = false
+		}
 		sess := session.Must(session.NewSession(
 			&aws.Config{
-				Endpoint: &cloud.Endpoint,
+				Endpoint: aws.String(cloud.Endpoint),
+				Region:   aws.String("us-east-1"),
 				Credentials: credentials.NewStaticCredentials(
 					cloud.AccessKey,
 					cloud.SecretKey,
 					"",
 				),
+				DisableSSL:       aws.Bool(true),
+				S3ForcePathStyle: aws.Bool(pathStyle),
 			}),
 		)
 		s3map[cloud.Name] = s3.New(sess)
@@ -74,13 +94,14 @@ func NewProxy(endpoint, ak, sk string, mongoURL string) (*Proxy, error) {
 	p.dao = d
 	p.backend = rp
 	p.s3Map = s3map
+	p.tmpPath = tmpPath
 	return p, nil
 }
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// forward
 	if err := p.forward(w, r); err != nil {
-		log.Error(err)
+		// log.Error(err)
 	}
 }
 
@@ -109,8 +130,27 @@ func (p *Proxy) forward(w http.ResponseWriter, r *http.Request) error {
 		return nil
 	}
 
-	// redirect PutObject, GetObject, ListObjects. CreateBucket only supported by web ui
-	p.backend.ServeHTTP(w, r)
+	if query.Type == writeBucketReq && query.Bucket != "" && query.Key != "" {
+		// PutObject
+		p.backend.ServeHTTP(w, r)
+
+		err = p.upload(bucket, query.Key)
+		if err != nil {
+			writeError(r, w, NewS3Error(ErrInternalError, nil))
+			return err
+		}
+	} else if query.Type == readBucketReq && query.Bucket != "" && query.Key != "" {
+		// GetBucket
+		err = p.download(bucket, query.Key)
+		if err != nil {
+			log.WithError(err).Error("download failed.")
+			writeError(r, w, NewS3Error(ErrInternalError, nil))
+			return err
+		}
+		p.backend.ServeHTTP(w, r)
+	} else {
+		p.backend.ServeHTTP(w, r)
+	}
 
 	return nil
 }

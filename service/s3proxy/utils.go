@@ -2,6 +2,7 @@ package s3proxy
 
 import (
 	"encoding/xml"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -118,4 +119,11 @@ func parseError2HTTPCode(err error) (code int) {
 	default:
 		return http.StatusInternalServerError
 	}
+}
+
+func getBucketName(cloud string, bucket string) string {
+	if cloud == "minio" {
+		return bucket
+	}
+	return fmt.Sprintf("jcs-%s-%s", cloud, bucket)
 }
