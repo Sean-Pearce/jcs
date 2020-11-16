@@ -27,15 +27,11 @@ const (
 )
 
 var (
-	mongoURL      = flag.String("mongo", "mongodb://localhost:27017", "mongodb server address")
-	schedulerAddr = flag.String("sched", "localhost:5001", "scheduler address")
-	port          = flag.String("port", ":5000", "http server port")
-	config        = flag.String("config", "httpserver.json", "httpserver config file")
-	debug         = flag.Bool("debug", false, "debug mode")
-	testMode      = flag.Bool("test", false, "enable test mode")
-	tokenMap      map[string]string
-	s3Map         map[string]*s3.S3
-	d             *dao.Dao
+	mongoURL = flag.String("mongo", "mongodb://localhost:27017", "mongodb server address")
+	port     = flag.String("port", ":5000", "http server port")
+	tokenMap map[string]string
+	s3Map    map[string]*s3.S3
+	d        *dao.Dao
 )
 
 func init() {
@@ -55,17 +51,6 @@ func init() {
 	d, err = dao.NewDao(*mongoURL, "jcs", "user", "bucket", "cloud")
 	if err != nil {
 		panic(err)
-	}
-
-	if *testMode {
-		err = d.CreateUser(dao.User{
-			Username: "admin",
-			Password: "admin",
-			Role:     "admin",
-		})
-		if err != nil {
-			log.WithError(err).Warnln("create test user failed")
-		}
 	}
 
 	tokenMap = make(map[string]string)
