@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"math/rand"
+	"runtime"
 	"time"
 )
 
@@ -31,4 +32,9 @@ func getBucketName(cloud string, bucket string) string {
 		return bucket
 	}
 	return fmt.Sprintf("jcs-%s-%s", cloud, bucket)
+}
+
+func getFunctionName() string {
+	pc, _, _, _ := runtime.Caller(1)
+	return runtime.FuncForPC(pc).Name()
 }

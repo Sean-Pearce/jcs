@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -35,6 +34,7 @@ func tokenAuthMiddleware() gin.HandlerFunc {
 				"code":    codeInvalidToken,
 				"message": "Invalid token",
 			})
+			log.Infof("Invalid token: %s", token)
 			c.Abort()
 		}
 
@@ -52,6 +52,7 @@ func signup(c *gin.Context) {
 		AccessKey: genAccessKey(),
 		SecretKey: genAccessKey(),
 	}
+	log.Infof("username: %s, password: %s", username, password)
 
 	err := d.CreateUser(user)
 	if err != nil {
@@ -59,6 +60,7 @@ func signup(c *gin.Context) {
 			"code":    codeSignUpError,
 			"message": "Sign up failed. Username has been used",
 		})
+		log.WithError(err).Infof("d.CreateUser(%v)", user)
 		return
 	}
 
@@ -76,6 +78,7 @@ func signup(c *gin.Context) {
 func login(c *gin.Context) {
 	username := c.Request.FormValue("username")
 	password := c.Request.FormValue("password")
+	log.Infof("username: %s, password: %s", username, password)
 
 	user, err := d.GetUser(username)
 	if err != nil || user.Password != password {
@@ -83,6 +86,7 @@ func login(c *gin.Context) {
 			"code":    codeAuthFail,
 			"message": "Account and password are incorrect.",
 		})
+		log.WithError(err).Infof("d.GetUser(%s) failed or password incorrect. user: %v", username, user)
 		return
 	}
 
@@ -100,6 +104,7 @@ func login(c *gin.Context) {
 func logout(c *gin.Context) {
 	token := c.GetHeader("X-Token")
 	delete(tokenMap, token)
+	log.Infof("token: %s", token)
 
 	c.JSON(http.StatusOK, gin.H{
 		"code":    codeOK,
@@ -113,6 +118,7 @@ func userInfo(c *gin.Context) {
 		token = c.Query("t")
 	}
 	username := getUsernameByToken(token)
+	log.Infof("username: %s, token: %s", username, token)
 
 	user, err := d.GetUser(username)
 	if err != nil {
@@ -120,6 +126,7 @@ func userInfo(c *gin.Context) {
 			"code":    codeInvalidToken,
 			"message": "User not exist.",
 		})
+		log.WithError(err).Infof("d.GetUser(%v) failed", username)
 		return
 	}
 
@@ -141,6 +148,7 @@ func allCloudInfo(c *gin.Context) {
 			"code":    codeInternalError,
 			"message": "Get cloud info failed.",
 		})
+		log.WithError(err).Errorf("d.GetAllCloudInfo() failed", getFunctionName())
 		return
 	}
 
@@ -154,6 +162,8 @@ func passwd(c *gin.Context) {
 	username := getUsernameByToken(c.GetHeader("X-Token"))
 	password := c.Request.FormValue("password")
 	newPassword := c.Request.FormValue("new_password")
+
+	log.Infof("username: %s, password: %s, newPassword: %s", username, password, newPassword)
 
 	user, err := d.GetUser(username)
 	if err != nil {
@@ -201,12 +211,14 @@ func createBucket(c *gin.Context) {
 	}
 
 	bucket.Owner = username
+	log.Infof("bucket: %v", bucket)
 	err = d.CreateBucket(bucket)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":    codeInternalError,
 			"message": "Something is wrong.",
 		})
+		log.WithError(err).Errorf("d.CreateBucket(%v) failed", bucket)
 		return
 	}
 
@@ -214,7 +226,8 @@ func createBucket(c *gin.Context) {
 	for _, cloud := range clouds {
 		client := s3Map[cloud]
 		if client == nil {
-			logrus.Errorf("client is nil")
+			log.Errorf("cloud %s not found", cloud)
+			continue
 		}
 		_, err = client.CreateBucket(&s3.CreateBucketInput{
 			Bucket: aws.String(getBucketName(cloud, bucket.Name)),
@@ -224,8 +237,8 @@ func createBucket(c *gin.Context) {
 				"code":    codeInternalError,
 				"message": "create bucket failed.",
 			})
-			logrus.WithError(err).Errorf("create bucket failed at %s", cloud)
-			return
+			log.WithError(err).Errorf("%s.CreateBucket() failed", cloud)
+			continue
 		}
 	}
 

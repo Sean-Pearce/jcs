@@ -2,7 +2,11 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"path"
+	"runtime"
 	"strings"
+	"time"
 
 	"github.com/Sean-Pearce/jcs/service/httpserver/dao"
 	"github.com/aws/aws-sdk-go/aws"
@@ -37,9 +41,15 @@ var (
 func init() {
 	flag.Parse()
 
-	if *debug {
-		log.SetLevel(log.DebugLevel)
-	}
+	log.SetReportCaller(true)
+	log.SetFormatter(&log.TextFormatter{
+		FullTimestamp:   true,
+		TimestampFormat: time.RFC3339,
+		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+			filename := path.Base(f.File)
+			return fmt.Sprintf("%s()", f.Function), fmt.Sprintf("%s:%d", filename, f.Line)
+		},
+	})
 
 	var err error
 	d, err = dao.NewDao(*mongoURL, "jcs", "user", "bucket", "cloud")
