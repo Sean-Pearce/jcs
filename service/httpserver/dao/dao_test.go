@@ -11,6 +11,7 @@ const (
 	database         = "test"
 	userCollection   = "user"
 	bucketCollection = "bucket"
+	fileCollection   = "file"
 	cloudCollection  = "cloud"
 )
 
@@ -18,7 +19,7 @@ var d *Dao
 
 func init() {
 	var err error
-	d, err = NewDao("mongodb://localhost:27017", database, userCollection, bucketCollection, cloudCollection)
+	d, err = NewDao("mongodb://localhost:27017", database, userCollection, bucketCollection, fileCollection, cloudCollection)
 	if err != nil {
 		panic(err)
 	}

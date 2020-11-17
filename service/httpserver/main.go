@@ -48,7 +48,7 @@ func init() {
 	})
 
 	var err error
-	d, err = dao.NewDao(*mongoURL, "jcs", "user", "bucket", "cloud")
+	d, err = dao.NewDao(*mongoURL, "jcs", "user", "bucket", "file", "cloud")
 	if err != nil {
 		panic(err)
 	}

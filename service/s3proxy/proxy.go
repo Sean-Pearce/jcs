@@ -21,6 +21,7 @@ const (
 	constDatabase     = "jcs"
 	constUserTable    = "user"
 	constBucketTable  = "bucket"
+	constFileTable    = "file"
 	constCloudTable   = "cloud"
 
 	minioName     = "minio"
@@ -51,7 +52,7 @@ func NewProxy(endpoint, ak, sk string, mongoURL string, tmpPath string) (*Proxy,
 	rp.Transport = newProxyTransport()
 	rp.BufferPool = newBufferPool()
 
-	d, err := dao.NewDao(mongoURL, constDatabase, constUserTable, constBucketTable, constCloudTable)
+	d, err := dao.NewDao(mongoURL, constDatabase, constUserTable, constBucketTable, constFileTable, constCloudTable)
 	if err != nil {
 		return nil, err
 	}

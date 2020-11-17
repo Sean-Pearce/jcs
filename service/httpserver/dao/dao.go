@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -16,6 +17,7 @@ type Dao struct {
 	database         string
 	userCollection   string
 	bucketCollection string
+	fileCollection   string
 	cloudCollection  string
 }
 
@@ -39,6 +41,13 @@ type Bucket struct {
 	K         int
 }
 
+type File struct {
+	Owner  string
+	Bucket string
+	Key    string
+	Size   int64
+}
+
 type Cloud struct {
 	Name      string
 	Endpoint  string
@@ -50,11 +59,12 @@ type Cloud struct {
 }
 
 // NewDao constructs a data access object (Dao).
-func NewDao(mongoURI, database, userCollection, bucketCollection, cloudCollection string) (*Dao, error) {
+func NewDao(mongoURI, database, userCollection, bucketCollection, fileCollection, cloudCollection string) (*Dao, error) {
 	dao := &Dao{
 		database:         database,
 		userCollection:   userCollection,
 		bucketCollection: bucketCollection,
+		fileCollection:   fileCollection,
 		cloudCollection:  cloudCollection,
 	}
 
@@ -211,15 +221,13 @@ func (d *Dao) GetBucket(bucket string) (*Bucket, error) {
 // InsertCloudInfo insert new cloud info to database.
 func (d *Dao) InsertCloudInfo(cloud Cloud) error {
 	col := d.client.Database(d.database).Collection(d.cloudCollection)
-	upsert := true
-	opt := options.UpdateOptions{Upsert: &upsert}
-	_, err := col.UpdateOne(
+	_, err := col.ReplaceOne(
 		context.TODO(),
 		bson.M{
 			"name": cloud.Name,
 		},
 		cloud,
-		&opt,
+		&options.ReplaceOptions{Upsert: aws.Bool(true)},
 	)
 	if err != nil {
 		return err
@@ -250,4 +258,70 @@ func (d *Dao) GetAllCloudInfo() ([]*Cloud, error) {
 	}
 
 	return clouds, nil
+}
+
+func (d *Dao) GetAvailableClouds(candidates []string, limit int) ([]*Cloud, error) {
+	col := d.client.Database(d.database).Collection(d.cloudCollection)
+
+	var clouds []*Cloud
+	cur, err := col.Find(
+		context.TODO(),
+		bson.D{
+			{"status", "online"},
+			{"name", bson.D{{"$in", candidates}}},
+		},
+		&options.FindOptions{
+			Limit: aws.Int64(int64(limit)),
+			Sort:  bson.D{{"price", 1}},
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	for cur.Next(context.TODO()) {
+		// create a value into which the single document can be decoded
+		var elem Cloud
+		err := cur.Decode(&elem)
+		if err != nil {
+			return nil, err
+		}
+		clouds = append(clouds, &elem)
+	}
+
+	if len(clouds) < limit {
+		return nil, mongo.ErrNoDocuments
+	}
+
+	return clouds, nil
+}
+
+func (d *Dao) InsertFileInfo(file File) error {
+	col := d.client.Database(d.database).Collection(d.fileCollection)
+	_, err := col.ReplaceOne(
+		context.TODO(),
+		bson.M{
+			"bucket": file.Bucket,
+			"key":    file.Key,
+		},
+		file,
+		&options.ReplaceOptions{Upsert: aws.Bool(true)},
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Dao) GetFileInfo(bucket, key string) (*File, error) {
+	col := d.client.Database(d.database).Collection(d.fileCollection)
+
+	var f File
+	err := col.FindOne(context.TODO(), bson.M{"bucket": bucket, "key": key}).Decode(&f)
+	if err != nil {
+		return nil, err
+	}
+
+	return &f, nil
 }
