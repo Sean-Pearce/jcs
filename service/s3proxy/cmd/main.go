@@ -24,6 +24,7 @@ var (
 func main() {
 	flag.Parse()
 
+	log.SetLevel(log.DebugLevel)
 	log.SetReportCaller(true)
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp:   true,

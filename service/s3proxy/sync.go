@@ -25,43 +25,31 @@ func (p *Proxy) upload(bucket *dao.Bucket, key string) error {
 	return nil
 }
 
+func (p *Proxy) download(bucket *dao.Bucket, key string) error {
+	if bucket.Mode == "ec" {
+		return p.downloadECMode(bucket, key)
+	} else if bucket.Mode == "replica" {
+		return p.downloadReplicaMode(bucket, key)
+	}
+
+	return nil
+}
+
 func (p *Proxy) uploadReplicaMode(bucket *dao.Bucket, key string) error {
 	// download to disk
 	dir := path.Join(p.tmpPath, uuid.NewV4().String())
-	err := os.MkdirAll(dir, 0755)
+	filename := path.Join(dir, key)
+	err := p.download2Disk(minioName, bucket.Name, key, dir, filename)
 	if err != nil {
-		log.WithError(err).Errorf("os.MkDirAll(%s, 0755) failed.", dir)
-		return err
-	}
-	file, err := os.Create(path.Join(dir, key))
-	if err != nil {
-		log.WithError(err).Errorf("os.Create(%s) failed.", path.Join(dir, key))
-		return err
-	}
-	defer file.Close()
-
-	src := p.s3Map[minioName]
-	downloader := s3manager.NewDownloaderWithClient(src)
-
-	_, err = downloader.Download(file, &s3.GetObjectInput{
-		Bucket: aws.String(bucket.Name),
-		Key:    aws.String(key),
-	})
-	if err != nil {
-		log.WithError(err).Errorf("Download object %s from bucket %s failed.", key, bucket.Name)
+		log.Errorf("Download to disk failed.")
 		return err
 	}
 
 	// upload to clouds
 	for _, cloud := range bucket.Locations {
-		dst := p.s3Map[cloud]
-		_, err = dst.PutObject(&s3.PutObjectInput{
-			Bucket: aws.String(getBucketName(cloud, bucket.Name)),
-			Key:    aws.String(key),
-			Body:   file,
-		})
+		err := p.upload2Cloud(cloud, bucket.Name, key, filename)
 		if err != nil {
-			log.WithError(err).Errorf("Put object %s to bucket %s failed.", key, getBucketName(cloud, bucket.Name))
+			// TODO
 			continue
 		}
 	}
@@ -72,44 +60,172 @@ func (p *Proxy) uploadReplicaMode(bucket *dao.Bucket, key string) error {
 func (p *Proxy) uploadECMode(bucket *dao.Bucket, key string) error {
 	// download to disk
 	dir := path.Join(p.tmpPath, uuid.NewV4().String())
+	filename := path.Join(dir, key)
+	err := p.download2Disk(minioName, bucket.Name, key, dir, filename)
+	if err != nil {
+		log.Errorf("Download to disk failed.")
+		return err
+	}
+
+	// encode file to shards
+	shards := make([]string, bucket.N+bucket.K)
+	for i := range shards {
+		shards[i] = path.Join(dir, fmt.Sprintf("%s.%d", key, i))
+	}
+	err = encode(filename, shards, bucket.N, bucket.K)
+	if err != nil {
+		log.Errorf("Encode file %s failed.", filename)
+		return err
+	}
+
+	// upload to clouds
+	for i, cloud := range bucket.Locations {
+		err := p.upload2Cloud(cloud, bucket.Name, key, shards[i])
+		if err != nil {
+			log.Errorf("Upload to cloud %s failed.", cloud)
+			// TODO
+			continue
+		}
+	}
+
+	return nil
+}
+
+func (p *Proxy) downloadReplicaMode(bucket *dao.Bucket, key string) error {
+	// download to disk
+	dir := path.Join(p.tmpPath, uuid.NewV4().String())
+	filename := path.Join(dir, key)
+	// TODO
+	cloud := bucket.Locations[0]
+	err := p.download2Disk(cloud, bucket.Name, key, dir, filename)
+	if err != nil {
+		log.Errorf("Download to disk failed.")
+		return err
+	}
+
+	// upload to minio
+	err = p.upload2Cloud(minioName, bucket.Name, key, filename)
+	if err != nil {
+		log.Errorf("Upload to %s failed.", minioName)
+		return err
+	}
+
+	return nil
+}
+
+func (p *Proxy) downloadECMode(bucket *dao.Bucket, key string) error {
+	// download to disk
+	dir := path.Join(p.tmpPath, uuid.NewV4().String())
+	filename := path.Join(dir, key)
+	// TODO
+	clouds := bucket.Locations
+	shards := make([]string, len(clouds))
+	for i, cloud := range clouds {
+		shards[i] = path.Join(dir, fmt.Sprintf("%s.%d", key, i))
+		err := p.download2Disk(cloud, bucket.Name, key, dir, shards[i])
+		if err != nil {
+			log.Errorf("Download from %s failed.", cloud)
+			return err
+		}
+	}
+
+	// decode to disk
+	err := decode(filename, shards, bucket.N, bucket.K)
+	if err != nil {
+		log.Debugf("Decode %s failed.", filename)
+		return err
+	}
+
+	// upload to minio
+	err = p.upload2Cloud(minioName, bucket.Name, key, filename)
+	if err != nil {
+		log.Debugf("Upload to %s failed.", minioName)
+		return err
+	}
+
+	return nil
+}
+
+func (p *Proxy) download2Disk(cloud string, bucket string, key string, dir string, filename string) error {
+	log.Debugf("cloud: %s, bucket: %s, key: %s, dir: %s, filename: %s", cloud, bucket, key, dir, filename)
+
 	err := os.MkdirAll(dir, 0755)
 	if err != nil {
 		log.WithError(err).Errorf("os.MkDirAll(%s, 0755) failed.", dir)
 		return err
 	}
-	file, err := os.Create(path.Join(dir, key))
+
+	file, err := os.Create(filename)
 	if err != nil {
-		log.WithError(err).Errorf("os.Create(%s) failed.", path.Join(dir, key))
+		log.WithError(err).Errorf("os.Create(%s) failed.", filename)
 		return err
 	}
 	defer file.Close()
 
-	src := p.s3Map[minioName]
+	src := p.s3Map[cloud]
 	downloader := s3manager.NewDownloaderWithClient(src)
 
 	_, err = downloader.Download(file, &s3.GetObjectInput{
-		Bucket: aws.String(bucket.Name),
+		Bucket: aws.String(getBucketName(cloud, bucket)),
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		log.WithError(err).Errorf("Download object %s from bucket %s failed.", key, bucket.Name)
+		log.WithError(err).Errorf("Download object %s from bucket %s failed.", key, bucket)
 		return err
 	}
 
-	// Create encoding matrix.
-	enc, err := reedsolomon.NewStream(bucket.N, bucket.K)
+	return nil
+}
+
+func (p *Proxy) upload2Cloud(cloud string, bucket string, key string, filename string) error {
+	log.Debugf("cloud: %s, bucket: %s, key: %s, filename: %s", cloud, bucket, key, filename)
+	// open file
+	file, err := os.Open(filename)
 	if err != nil {
-		log.WithError(err).Errorf("Create new encoder(n=%d,k=%d) failed.", bucket.N, bucket.K)
+		log.WithError(err).Errorf("Open %s failed.", filename)
+		return err
+	}
+	defer file.Close()
+
+	// upload to cloud
+	dst := p.s3Map[cloud]
+	_, err = dst.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(getBucketName(cloud, bucket)),
+		Key:    aws.String(key),
+		Body:   file,
+	})
+	if err != nil {
+		log.WithError(err).Errorf("Put object %s to bucket %s failed.", key, getBucketName(cloud, bucket))
 		return err
 	}
 
-	// Create the resulting files.
-	out := make([]*os.File, bucket.N+bucket.K)
+	return nil
+}
+
+func encode(filename string, shards []string, n, k int) error {
+	log.Debugf("filename: %s, shards: %v, n: %d, k: %d", filename, shards, n, k)
+
+	// open file
+	file, err := os.Open(filename)
+	if err != nil {
+		log.WithError(err).Errorf("Open %s failed.", filename)
+		return err
+	}
+	defer file.Close()
+
+	// Create encoding matrix
+	enc, err := reedsolomon.NewStream(n, k)
+	if err != nil {
+		log.WithError(err).Errorf("Create new encoder(n=%d,k=%d) failed.", n, k)
+		return err
+	}
+
+	// Create the resulting files
+	out := make([]*os.File, n+k)
 	for i := range out {
-		outfn := fmt.Sprintf("%s.%d", key, i)
-		out[i], err = os.Create(path.Join(dir, outfn))
+		out[i], err = os.Create(shards[i])
 		if err != nil {
-			log.WithError(err).Errorf("os.Create(%s) failed.", path.Join(dir, outfn))
+			log.WithError(err).Errorf("os.Create(%s) failed.", shards[i])
 			return err
 		}
 	}
@@ -120,7 +236,7 @@ func (p *Proxy) uploadECMode(bucket *dao.Bucket, key string) error {
 		log.WithError(err).Errorf("file.Stat() failed: %s.", file.Name())
 		return err
 	}
-	data := make([]io.Writer, bucket.N)
+	data := make([]io.Writer, n)
 	for i := range data {
 		data[i] = out[i]
 	}
@@ -131,7 +247,7 @@ func (p *Proxy) uploadECMode(bucket *dao.Bucket, key string) error {
 	}
 
 	// Close and re-open the files.
-	input := make([]io.Reader, bucket.N)
+	input := make([]io.Reader, n)
 	for i := range data {
 		out[i].Close()
 		f, err := os.Open(out[i].Name())
@@ -144,134 +260,51 @@ func (p *Proxy) uploadECMode(bucket *dao.Bucket, key string) error {
 	}
 
 	// Create parity output writers
-	parity := make([]io.Writer, bucket.K)
+	parity := make([]io.Writer, k)
 	for i := range parity {
-		parity[i] = out[bucket.N+i]
+		parity[i] = out[n+i]
 	}
 
 	// Encode parity
 	err = enc.Encode(input, parity)
+	if err != nil {
+		log.WithError(err).Errorf("Encode parity shards failed.")
+	}
 
-	// upload to clouds
-	for i, cloud := range bucket.Locations {
-		out[i].Close()
-		f, err := os.Open(out[i].Name())
+	// Close result files
+	for _, f := range out {
+		f.Close()
+	}
+
+	return nil
+}
+
+func decode(filename string, shards []string, n, k int) error {
+	log.Debugf("filename: %s, shards: %v, n: %d, k: %d", filename, shards, n, k)
+
+	// read shards
+	inputs := make([]io.Reader, n+k)
+	for i, s := range shards {
+		f, err := os.Open(s)
 		if err != nil {
-			log.WithError(err).Errorf("Open file %s failed.", out[i].Name())
+			log.WithError(err).Errorf("Open file %s failed.", s)
 			return err
 		}
+		inputs[i] = f
 		defer f.Close()
-
-		dst := p.s3Map[cloud]
-		_, err = dst.PutObject(&s3.PutObjectInput{
-			Bucket: aws.String(getBucketName(cloud, bucket.Name)),
-			Key:    aws.String(key),
-			Body:   f,
-		})
-		if err != nil {
-			log.WithError(err).Errorf("Put object %s to bucket %s failed.", key, getBucketName(cloud, bucket.Name))
-			return err
-		}
 	}
 
-	return nil
-}
-
-func (p *Proxy) download(bucket *dao.Bucket, key string) error {
-	if bucket.Mode == "ec" {
-		return p.downloadECMode(bucket, key)
-	} else if bucket.Mode == "replica" {
-		return p.downloadReplicaMode(bucket, key)
-	}
-
-	return nil
-}
-
-func (p *Proxy) downloadReplicaMode(bucket *dao.Bucket, key string) error {
-	// download to disk
-	dir := path.Join(p.tmpPath, uuid.NewV4().String())
-	err := os.MkdirAll(dir, 0755)
+	// create file
+	file, err := os.Create(filename)
 	if err != nil {
-		return err
-	}
-	file, err := os.Create(path.Join(dir, key))
-	if err != nil {
+		log.WithError(err).Errorf("Create file %s failed.", filename)
 		return err
 	}
 	defer file.Close()
 
-	// TODO: choose best cloud
-	cloud := bucket.Locations[0]
-
-	src := p.s3Map[cloud]
-	downloader := s3manager.NewDownloaderWithClient(src)
-
-	_, err = downloader.Download(file, &s3.GetObjectInput{
-		Bucket: aws.String(getBucketName(cloud, bucket.Name)),
-		Key:    aws.String(key),
-	})
+	enc, err := reedsolomon.NewStream(n, k)
 	if err != nil {
-		return err
-	}
-
-	// upload to minio
-	dst := p.s3Map[minioName]
-	_, err = dst.PutObject(&s3.PutObjectInput{
-		Bucket: aws.String(bucket.Name),
-		Key:    aws.String(key),
-		Body:   file,
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (p *Proxy) downloadECMode(bucket *dao.Bucket, key string) error {
-	// download to disk
-	dir := path.Join(p.tmpPath, uuid.NewV4().String())
-	err := os.MkdirAll(dir, 0755)
-	if err != nil {
-		return err
-	}
-
-	// TODO: choose best cloud
-	clouds := bucket.Locations
-	blocks := make([]*os.File, len(clouds))
-	for i, cloud := range clouds {
-		fname := fmt.Sprintf("%s.%d", key, i)
-		file, err := os.Create(path.Join(dir, fname))
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-
-		blocks[i] = file
-		src := p.s3Map[cloud]
-		downloader := s3manager.NewDownloaderWithClient(src)
-
-		_, err = downloader.Download(file, &s3.GetObjectInput{
-			Bucket: aws.String(getBucketName(cloud, bucket.Name)),
-			Key:    aws.String(key),
-		})
-		if err != nil {
-			return err
-		}
-	}
-
-	inputs := make([]io.Reader, len(clouds))
-	for i := range inputs {
-		inputs[i] = blocks[i]
-	}
-
-	file, err := os.Create(path.Join(dir, key))
-	if err != nil {
-		return err
-	}
-
-	enc, err := reedsolomon.NewStream(bucket.N, bucket.K)
-	if err != nil {
+		log.WithError(err).Errorf("Create new encoder failed.")
 		return err
 	}
 
@@ -281,25 +314,6 @@ func (p *Proxy) downloadECMode(bucket *dao.Bucket, key string) error {
 	err = enc.Join(file, inputs, 1024)
 	if err != nil {
 		log.WithError(err).Error("reconsruct failed")
-		return err
-	}
-
-	// reopen file
-	file.Close()
-	file, err = os.Open(file.Name())
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	// upload to minio
-	dst := p.s3Map[minioName]
-	_, err = dst.PutObject(&s3.PutObjectInput{
-		Bucket: aws.String(bucket.Name),
-		Key:    aws.String(key),
-		Body:   file,
-	})
-	if err != nil {
 		return err
 	}
 
